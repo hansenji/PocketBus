@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Bus Sample</string>
+    <string name="text">%1$s\n%2$s</string>
+</resources>
