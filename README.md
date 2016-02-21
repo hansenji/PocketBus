@@ -4,7 +4,7 @@ Rx based event bus that doesn't leak memory
 License
 -------
 
-    Copyright 2016 Jordan Hansen
+    Copyright 2016 Jordan Hansen, Brian Wernick
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
