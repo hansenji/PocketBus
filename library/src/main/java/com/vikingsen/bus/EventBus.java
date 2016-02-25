@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -12,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -22,49 +24,76 @@ import rx.schedulers.Schedulers;
 /**
  * TODO: scheduled listeners (EventSubscription) cleanup
  */
-public class EventBus implements Bus{
+public class EventBus {
     private static final String TAG = "EventBus";
 
+    @NonNull
     private static EventBus defaultBus = new Builder().build();
     private static boolean debug = false;
 
+    @NonNull
     private final Scheduler mainScheduler;
+    @NonNull
     private final Scheduler currentScheduler;
+    @NonNull
     private final Scheduler backgroundScheduler;
 
+    private final int eventCleanupCount;
+    @NonNull
+    private final AtomicInteger eventCounter = new AtomicInteger();
+
+    @NonNull
     private final Map<Class, List<WeakReference<EventSubscription>>> mainThreadListeners = new LinkedHashMap<>();
+    @NonNull
     private final Map<Class, List<WeakReference<EventSubscription>>> backgroundThreadListeners = new LinkedHashMap<>();
+    @NonNull
     private final Map<Class, List<WeakReference<EventSubscription>>> currentThreadListeners = new LinkedHashMap<>();
 
+    @NonNull
     private final Map<Class<?>, ? super Object> stickyEvents = new LinkedHashMap<>();
+    @NonNull
     private final Object listenerLock = new Object();
+    @NonNull
+    private final Object stickyLock = new Object();
 
 
-    private EventBus(Scheduler mainScheduler, Scheduler currentScheduler, Scheduler backgroundScheduler) {
+    private EventBus(@NonNull Scheduler mainScheduler, @NonNull Scheduler currentScheduler, @NonNull Scheduler backgroundScheduler, int eventCleanupCount) {
         this.mainScheduler = mainScheduler;
         this.currentScheduler = currentScheduler;
         this.backgroundScheduler = backgroundScheduler;
+        this.eventCleanupCount = eventCleanupCount;
     }
 
+    @NonNull
     public static EventBus getDefault() {
         return defaultBus;
     }
 
-    public static void setDefault(EventBus bus) {
+    public static void setDefault(@NonNull EventBus bus) {
         defaultBus = bus;
     }
 
-    public static void enableDebug(boolean enable) {
+    public static void setDebug(boolean enable) {
         debug = enable;
     }
 
-    public <T> void register(@NonNull Class<T> clazz, @NonNull EventSubscription<? super T> subscription) {
-        register(clazz, subscription, ThreadMode.CURRENT);
+    public <T> void register(@NonNull EventSubscription<? super T> subscription) {
+        register(subscription, true);
     }
 
-    public <T> void register(@NonNull Class<T> clazz, @NonNull EventSubscription<? super T> subscription, ThreadMode threadMode) {
-        Map<Class, List<WeakReference<EventSubscription>>> listenerMap;
+    public void register(@NonNull Registrar registrar) {
+        List<EventSubscription<?>> subscriptions = registrar.getSubscriptions();
+        for (EventSubscription subscription : subscriptions) {
+            register(subscription, false);
+        }
+        for (EventSubscription subscription : subscriptions) {
+            postStickyOnRegistration(subscription);
+        }
+    }
 
+    private <T> void register(@NonNull EventSubscription<? super T> subscription, boolean postStickyEvents) {
+        Map<Class, List<WeakReference<EventSubscription>>> listenerMap;
+        ThreadMode threadMode = subscription.getThreadMode();
         switch (threadMode) {
             case MAIN:
                 listenerMap = mainThreadListeners;
@@ -79,128 +108,173 @@ public class EventBus implements Bus{
                 throw new IllegalArgumentException("Invalid thread mode " + threadMode);
         }
 
+        Class<? super T> eventClass = subscription.getEventClass();
         synchronized (listenerLock) {
-            if (!listenerMap.containsKey(clazz)) {
-                listenerMap.put(clazz, new LinkedList<WeakReference<EventSubscription>>());
+            if (!listenerMap.containsKey(eventClass)) {
+                listenerMap.put(eventClass, new LinkedList<WeakReference<EventSubscription>>());
             }
 
-            listenerMap.get(clazz).add(new WeakReference<EventSubscription>(subscription));
-            if (debug) {
-                countSubscriptions();
+            listenerMap.get(eventClass).add(new WeakReference<EventSubscription>(subscription));
+            if (postStickyEvents) {
+                postStickyOnRegistration(subscription);
             }
         }
-        postStickyOnRegistration(clazz, subscription, threadMode);
+        log("Registered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    private void countSubscriptions() {
-        int count = 0;
-        count += countSubscriptions(mainThreadListeners);
-        count += countSubscriptions(currentThreadListeners);
-        count += countSubscriptions(backgroundThreadListeners);
+    public <T> void unregister(@NonNull EventSubscription<? super T> subscription) {
+        Map<Class, List<WeakReference<EventSubscription>>> listenerMap;
 
-        Log.i(TAG, "Registration Count: " + count);
-    }
-
-    private int countSubscriptions(Map<Class, List<WeakReference<EventSubscription>>> listMap) {
-        int count = 0;
-        for (List<WeakReference<EventSubscription>> subscriptions : listMap.values()) {
-            count += subscriptions.size();
+        ThreadMode threadMode = subscription.getThreadMode();
+        switch (threadMode) {
+            case MAIN:
+                listenerMap = mainThreadListeners;
+                break;
+            case BACKGROUND:
+                listenerMap = backgroundThreadListeners;
+                break;
+            case CURRENT:
+                listenerMap = currentThreadListeners;
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid thread mode " + threadMode);
         }
-        return count;
-    }
 
-    public void register(@NonNull Registrar registrar) {
-        registrar.register(this);
-    }
-
-    public <T> void unregister(@NonNull Class<T> clazz, @NonNull EventSubscription<? super T> subscription) {
-        //Unregisters listeners that match both the clazz and subscription
+        Class<? super T> eventClass = subscription.getEventClass();
         synchronized (listenerLock) {
-            if (mainThreadListeners.containsKey(clazz)) {
-                unregister(subscription, mainThreadListeners.get(clazz));
-            }
-
-            if (backgroundThreadListeners.containsKey(clazz)) {
-                unregister(subscription, backgroundThreadListeners.get(clazz));
-            }
-
-            if (currentThreadListeners.containsKey(clazz)) {
-                unregister(subscription, currentThreadListeners.get(clazz));
-            }
-            if (debug) {
-                countSubscriptions();
+            List<WeakReference<EventSubscription>> subscriptions = listenerMap.get(eventClass);
+            if (subscriptions != null) {
+                unregister(subscription, subscriptions);
             }
         }
+        log("Unregistered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
     public void unregister(@NonNull Registrar registrar) {
-        registrar.unregister(this);
+        for (EventSubscription subscription : registrar.getSubscriptions()) {
+            unregister(subscription);
+        }
     }
 
     public <T> void post(@NonNull T event) {
         synchronized (listenerLock) {
             for (Map.Entry<Class, List<WeakReference<EventSubscription>>> entry : currentThreadListeners.entrySet()) {
-                checkAndPost(entry.getKey(), event, ThreadMode.CURRENT, entry.getValue());
+                checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.CURRENT);
             }
 
             for (Map.Entry<Class, List<WeakReference<EventSubscription>>> entry : mainThreadListeners.entrySet()) {
-                checkAndPost(entry.getKey(), event, ThreadMode.MAIN, entry.getValue());
+                checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.MAIN);
             }
 
             for (Map.Entry<Class, List<WeakReference<EventSubscription>>> entry : backgroundThreadListeners.entrySet()) {
-                checkAndPost(entry.getKey(), event, ThreadMode.BACKGROUND, entry.getValue());
+                checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.BACKGROUND);
             }
+        }
+
+        int counter = eventCounter.incrementAndGet();
+        log("EventCounter: " + counter);
+        if (counter >= eventCleanupCount) {
+            eventCounter.set(0);
+            Observable.just(0)
+                    .subscribeOn(backgroundScheduler)
+                    .subscribe(new Action1<Integer>() {
+                        @Override
+                        public void call(Integer integer) {
+                            cleanupWeakReferences();
+                        }
+                    });
         }
     }
 
-    private <T> void checkAndPost(Class subscriptionClazz, T event, ThreadMode threadMode, List<WeakReference<EventSubscription>> subscriptions) {
+    private <T> void checkAndPost(@NonNull Class subscriptionClazz, @NonNull T event, @NonNull List<WeakReference<EventSubscription>> subscriptions,
+                                  @NonNull ThreadMode threadMode) {
         if (subscriptionClazz.isInstance(event)) {
-            post(event, threadMode, subscriptions);
+            post(event, subscriptions, threadMode);
+            log("Event<" + event.getClass() + "> posted to Subscription<" + subscriptionClazz + "> on ThreadMode." + threadMode);
         }
     }
 
     public <T> void postSticky(@NonNull T event) {
-        stickyEvents.put(event.getClass(), event);
+        synchronized (stickyLock) {
+            stickyEvents.put(event.getClass(), event);
+        }
         post(event);
     }
 
     public <T> void removeSticky(@NonNull Class<T> eventClass) {
-        stickyEvents.remove(eventClass);
+        synchronized (stickyLock) {
+            stickyEvents.remove(eventClass);
+        }
     }
 
     /**
      * Used to post sticky events to a newly registered listener
      */
-    private <T> void postStickyOnRegistration(@NonNull Class<T> clazz, @NonNull EventSubscription<? super T> subscription, ThreadMode threadMode) {
-        for (Map.Entry<Class<?>, ? super Object> entry : stickyEvents.entrySet()) {
-            if (clazz.isAssignableFrom(entry.getKey())) {
-                post(entry.getValue(), threadMode, Collections.singletonList(new WeakReference<EventSubscription>(subscription)));
+    private <T> void postStickyOnRegistration(@NonNull EventSubscription<? super T> subscription) {
+        Class<? super T> eventClass = subscription.getEventClass();
+        ThreadMode threadMode = subscription.getThreadMode();
+        synchronized (stickyLock) {
+            for (Map.Entry<Class<?>, ? super Object> entry : stickyEvents.entrySet()) {
+                Class<?> stickyClass = entry.getKey();
+                if (eventClass.isAssignableFrom(stickyClass)) {
+                    post(entry.getValue(), Collections.singletonList(new WeakReference<EventSubscription>(subscription)), threadMode);
+                    log("Sticky Event<" + stickyClass + "> posted to Subscription<" + eventClass + "> on ThreadMode." + threadMode);
+                }
             }
         }
     }
 
-    private <T> void post(@NonNull T event, ThreadMode threadMode, @NonNull List<WeakReference<EventSubscription>> subscriptions) {
-        Observable.just(new SubscriptionStore<T>(event, subscriptions))
+    private <T> void post(@NonNull T event, @NonNull List<WeakReference<EventSubscription>> subscriptions, @NonNull ThreadMode threadMode) {
+        Observable.just(new SubscriptionsStore<>(event, new ArrayList<>(subscriptions), threadMode))
                 .subscribeOn(getScheduler(threadMode))
-                .subscribe(new Action1<SubscriptionStore<T>>() {
+                .subscribe(new Action1<SubscriptionsStore<T>>() {
                     @Override
-                    public void call(SubscriptionStore<T> store) {
+                    public void call(SubscriptionsStore<T> store) {
                         performPost(store);
                     }
                 });
     }
 
-    private <T> void performPost(SubscriptionStore<T> store) {
-        synchronized (listenerLock) {
-            Iterator<WeakReference<EventSubscription>> iterator = store.subscriptions.iterator();
+    private <T> void performPost(@NonNull SubscriptionsStore<T> store) {
+        for (WeakReference<EventSubscription> subscription : store.subscriptions) {
+            EventSubscription eventSubscription = subscription.get();
+            if (eventSubscription != null) {
+                //noinspection unchecked
+                eventSubscription.handle(store.event);
+            } else {
+                Observable.just(new SubscriptionStore<>(store.event, eventSubscription, store.threadMode))
+                        .subscribeOn(backgroundScheduler)
+                        .subscribe(new Action1<SubscriptionStore<T>>() {
+                            @Override
+                            public void call(SubscriptionStore<T> store) {
+                                unregister(store);
+                            }
+                        });
+            }
+        }
+    }
 
-            while (iterator.hasNext()) {
-                EventSubscription subscription = iterator.next().get();
-                if (subscription != null) {
-                    //noinspection unchecked
-                    subscription.handle(store.event);
-                } else {
-                    iterator.remove();
+    private <T> void unregister(@NonNull SubscriptionStore<T> store) {
+        Map<Class, List<WeakReference<EventSubscription>>> listenerMap;
+
+        switch (store.threadMode) {
+            case MAIN:
+                listenerMap = mainThreadListeners;
+                break;
+            case BACKGROUND:
+                listenerMap = backgroundThreadListeners;
+                break;
+            case CURRENT:
+                listenerMap = currentThreadListeners;
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid thread mode " + store.threadMode);
+        }
+
+        synchronized (listenerLock) {
+            for (Map.Entry<Class, List<WeakReference<EventSubscription>>> entry : listenerMap.entrySet()) {
+                if (entry.getKey().isInstance(store.event)) {
+                    unregister(store.subscription, entry.getValue());
                 }
             }
         }
@@ -217,7 +291,8 @@ public class EventBus implements Bus{
         }
     }
 
-    private Scheduler getScheduler(ThreadMode threadMode) {
+    @NonNull
+    private Scheduler getScheduler(@NonNull ThreadMode threadMode) {
         switch (threadMode) {
             case CURRENT:
                 return currentScheduler;
@@ -230,20 +305,68 @@ public class EventBus implements Bus{
         }
     }
 
-    private static class SubscriptionStore<T> {
-        @NonNull
-        T event;
-        @NonNull
-        List<WeakReference<EventSubscription>> subscriptions;
+    private void cleanupWeakReferences() {
+        synchronized (listenerLock) {
+            cleanupWeakReferences(mainThreadListeners, ThreadMode.MAIN);
+            cleanupWeakReferences(backgroundThreadListeners, ThreadMode.BACKGROUND);
+            cleanupWeakReferences(currentThreadListeners, ThreadMode.CURRENT);
+        }
+    }
 
-        public SubscriptionStore(@NonNull T event, @NonNull List<WeakReference<EventSubscription>> subscriptions) {
+    private void cleanupWeakReferences(@NonNull Map<Class, List<WeakReference<EventSubscription>>> listeners, @NonNull ThreadMode threadMode) {
+        int cleanupCount = 0;
+        for (List<WeakReference<EventSubscription>> weakReferences : listeners.values()) {
+            Iterator<WeakReference<EventSubscription>> iterator = weakReferences.iterator();
+            while (iterator.hasNext()) {
+                EventSubscription subscription = iterator.next().get();
+                if (subscription == null) {
+                    iterator.remove();
+                    cleanupCount++;
+                }
+            }
+        }
+        log("cleanupWeakReferences: " + cleanupCount + " for ThreadMode." + threadMode);
+    }
+
+    private void log(@NonNull String msg) {
+        if (debug) {
+            Log.d(TAG, msg);
+        }
+    }
+
+    private static class SubscriptionsStore<T> {
+        @NonNull
+        final T event;
+        @NonNull
+        final ThreadMode threadMode;
+        @NonNull
+        final List<WeakReference<EventSubscription>> subscriptions;
+
+        public SubscriptionsStore(@NonNull T event, @NonNull List<WeakReference<EventSubscription>> subscriptions, @NonNull ThreadMode threadMode) {
             this.event = event;
+            this.threadMode = threadMode;
             this.subscriptions = subscriptions;
         }
     }
 
-    private static class Builder {
+    private static class SubscriptionStore<T> {
+        @NonNull
+        final T event;
+        @NonNull
+        final ThreadMode threadMode;
+        @NonNull
+        final EventSubscription subscription;
+
+        public SubscriptionStore(@NonNull T event, @NonNull EventSubscription subscription, @NonNull ThreadMode threadMode) {
+            this.event = event;
+            this.threadMode = threadMode;
+            this.subscription = subscription;
+        }
+    }
+
+    public static class Builder {
         private static final int DEFAULT_BACKGROUND_THREAD_POOL_SIZE = 2;
+        private static final int DEFAULT_EVENT_CLEANUP_COUNT = 100;
 
         @Nullable
         private Scheduler mainScheduler;
@@ -252,22 +375,27 @@ public class EventBus implements Bus{
         @Nullable
         private Scheduler backgroundScheduler;
         private int backgroundThreadPoolSize = DEFAULT_BACKGROUND_THREAD_POOL_SIZE;
+        private int eventCleanupCount = DEFAULT_EVENT_CLEANUP_COUNT;
 
-        public Builder setMainScheduler(Scheduler scheduler) {
+        @NonNull
+        public Builder setMainScheduler(@NonNull Scheduler scheduler) {
             this.mainScheduler = scheduler;
             return this;
         }
 
-        public Builder setCurrentScheduler(Scheduler scheduler) {
+        @NonNull
+        public Builder setCurrentScheduler(@NonNull Scheduler scheduler) {
             this.currentScheduler = scheduler;
             return this;
         }
 
-        public Builder setBackgroundScheduler(Scheduler scheduler) {
+        @NonNull
+        public Builder setBackgroundScheduler(@NonNull Scheduler scheduler) {
             this.backgroundScheduler = scheduler;
             return this;
         }
 
+        @NonNull
         public Builder setBackgroundThreadPoolSize(int threadPoolSize) {
             if (threadPoolSize < 1) {
                 throw new IllegalArgumentException("Thread pool size must be >= 1");
@@ -276,6 +404,13 @@ public class EventBus implements Bus{
             return this;
         }
 
+        @NonNull
+        public Builder setEventCleanupCount(int eventCleanupCount) {
+            this.eventCleanupCount = eventCleanupCount;
+            return this;
+        }
+
+        @NonNull
         public EventBus build() {
             if (mainScheduler == null) {
                 mainScheduler = AndroidSchedulers.mainThread();
@@ -286,7 +421,7 @@ public class EventBus implements Bus{
             if (backgroundScheduler == null) {
                 backgroundScheduler = Schedulers.from(Executors.newFixedThreadPool(backgroundThreadPoolSize));
             }
-            return new EventBus(mainScheduler, currentScheduler, backgroundScheduler);
+            return new EventBus(mainScheduler, currentScheduler, backgroundScheduler, eventCleanupCount);
         }
     }
 }

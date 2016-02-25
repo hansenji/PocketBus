@@ -1,6 +1,7 @@
 package com.vikingsen.bus;
 
+import java.util.List;
+
 public interface Registrar {
-    void register(Bus bus);
-    void unregister(Bus bus);
+    List<EventSubscription<?>> getSubscriptions();
 }

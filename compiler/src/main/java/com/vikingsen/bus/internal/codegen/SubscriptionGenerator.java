@@ -7,18 +7,24 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.vikingsen.bus.Bus;
+import com.squareup.javapoet.WildcardTypeName;
 import com.vikingsen.bus.EventSubscription;
 import com.vikingsen.bus.Registrar;
 import com.vikingsen.bus.ThreadMode;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 
 public class SubscriptionGenerator {
+
+    private static final ParameterizedTypeName LIST_TYPE = ParameterizedTypeName.get(ClassName.get(List.class),
+            ParameterizedTypeName.get(ClassName.get(EventSubscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT)));
 
     Set<SubscriptionMethod> methods = new LinkedHashSet<>();
 
@@ -48,90 +54,89 @@ public class SubscriptionGenerator {
                         .addStatement("this.$N = $N", GeneratorConst.VAR_TARGET, GeneratorConst.VAR_TARGET)
                         .build());
 
-        generateMethods(classBuilder);
         generateSubscriptions(classBuilder);
+        generateMethod(classBuilder);
 
         return JavaFile.builder(classPackage, classBuilder.build()).build();
     }
 
-    private void generateMethods(TypeSpec.Builder classBuilder) {
-        generateRegisterMethod(classBuilder);
-        generateUnregisterMethod(classBuilder);
-//
-//        for (SubscriptionMethod subscriptionMethod : methods) {
-//            generateSubscriptionMethod(classBuilder, subscriptionMethod);
-//        }
-//
-//        generateEqualsMethod(classBuilder);
-    }
-
-    private void generateRegisterMethod(TypeSpec.Builder classBuilder) {
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_REGISTER)
+    private void generateMethod(TypeSpec.Builder classBuilder) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(GeneratorConst.METHOD_GET_SUBSCRIPTIONS)
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(ClassName.get(Bus.class), GeneratorConst.VAR_BUS);
+                .addAnnotation(Override.class)
+                .returns(LIST_TYPE)
+                .addStatement("return $N", GeneratorConst.VAR_SUBSCRIPTIONS);
 
-        for (SubscriptionMethod subscription : methods) {
-            methodBuilder.addStatement("$N.$L($T.class, $N, $T.$L)", GeneratorConst.VAR_BUS, GeneratorConst.METHOD_REGISTER,
-                    TypeName.get(subscription.getEventType()), GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex(), ClassName.get(ThreadMode.class),
-                    subscription.getThreadMode());
-        }
-
-        classBuilder.addMethod(methodBuilder.build());
-    }
-
-    private void generateUnregisterMethod(TypeSpec.Builder classBuilder) {
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_UNREGISTER)
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(ClassName.get(Bus.class), GeneratorConst.VAR_BUS);
-
-        for (SubscriptionMethod subscription : methods) {
-            methodBuilder.addStatement("$N.$L($T.class, $N)", GeneratorConst.VAR_BUS, GeneratorConst.METHOD_UNREGISTER,
-                    TypeName.get(subscription.getEventType()), GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex());
-        }
-
-        classBuilder.addMethod(methodBuilder.build());
+        classBuilder.addMethod(builder.build());
     }
 
     private void generateSubscriptions(TypeSpec.Builder classBuilder) {
+        StringBuilder stringBuilder = new StringBuilder("$T.unmodifiableList($T.asList(");
+        Object[] subscriptionsArgs = new Object[methods.size() + 2];
+        subscriptionsArgs[0] = ClassName.get(Collections.class);
+        subscriptionsArgs[1] = ClassName.get(Arrays.class);
+
+        int i = 2;
         for (SubscriptionMethod subscription : methods) {
+            String name = GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex();
+
             ParameterizedTypeName subscriptionType = ParameterizedTypeName.get(ClassName.get(EventSubscription.class),
                     TypeName.get(subscription.getEventType()));
-            FieldSpec.Builder fieldBuilder = FieldSpec.builder(subscriptionType, GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex(),
-                    Modifier.PRIVATE);
-            fieldBuilder.initializer("$L", generateAnonymouseSubscription(subscriptionType, subscription));
+
+            FieldSpec.Builder fieldBuilder = FieldSpec.builder(subscriptionType, name, Modifier.PRIVATE);
+            fieldBuilder.initializer("$L", generateAnonymousSubscription(subscriptionType, subscription));
             classBuilder.addField(fieldBuilder.build());
+            subscriptionsArgs[i] = name;
+            if (i++ > 2) {
+                stringBuilder.append(",");
+            }
+            stringBuilder.append("$N");
         }
+
+        stringBuilder.append("))");
+
+        FieldSpec.Builder subscriptionsBuilder = FieldSpec.builder(LIST_TYPE, GeneratorConst.VAR_SUBSCRIPTIONS, Modifier.PRIVATE, Modifier.FINAL);
+        subscriptionsBuilder.initializer(stringBuilder.toString(), subscriptionsArgs);
+        classBuilder.addField(subscriptionsBuilder.build());
     }
 
-    private TypeSpec generateAnonymouseSubscription(ParameterizedTypeName subscriptionType, SubscriptionMethod subscription) {
+    private TypeSpec generateAnonymousSubscription(ParameterizedTypeName subscriptionType, SubscriptionMethod subscription) {
         TypeSpec.Builder builder = TypeSpec.anonymousClassBuilder("")
                 .addSuperinterface(subscriptionType);
 
-        generateSubscriptionMethod(builder, subscription);
-//        generateEqualsMethod(builder);
+        generateHandleMethod(builder, subscription);
+        generateClassMethod(builder, subscription);
+        generateThreadMethod(builder, subscription);
 
         return builder.build();
     }
 
-//    private void generateEqualsMethod(TypeSpec.Builder classBuilder) {
-//        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_EQUALS)
-//                .addModifiers(Modifier.PUBLIC)
-//                .addParameter(ClassName.get(Object.class), GeneratorConst.VAR_O)
-//                .returns(TypeName.BOOLEAN)
-//                .beginControlFlow("if ($N instanceof $N)", GeneratorConst.VAR_O, className)
-//                .addStatement("return $N == (($N)$N).$N", GeneratorConst.VAR_TARGET, className, GeneratorConst.VAR_O, GeneratorConst
-//                        .VAR_TARGET)
-//                .endControlFlow()
-//                .addStatement("return false");
-//
-//        classBuilder.addMethod(methodBuilder.build());
-//    }
-
-    private void generateSubscriptionMethod(TypeSpec.Builder classBuilder, SubscriptionMethod subscriptionMethod) {
+    private void generateHandleMethod(TypeSpec.Builder classBuilder, SubscriptionMethod subscriptionMethod) {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_HANDLE)
                 .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
                 .addParameter(TypeName.get(subscriptionMethod.getEventType()), GeneratorConst.VAR_EVENT)
                 .addStatement("$N.$L($N)", GeneratorConst.VAR_TARGET, subscriptionMethod.getName(), GeneratorConst.VAR_EVENT);
+
+        classBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void generateClassMethod(TypeSpec.Builder classBuilder, SubscriptionMethod subscription) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_GET_EVENT_CLASS)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(ParameterizedTypeName.get(ClassName.get(Class.class), TypeName.get(subscription.getEventType())))
+                .addStatement("return $T.class", TypeName.get(subscription.getEventType()));
+
+        classBuilder.addMethod(methodBuilder.build());
+    }
+
+    private void generateThreadMethod(TypeSpec.Builder classBuilder, SubscriptionMethod subscription) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_GET_THREAD_MODE)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(TypeName.get(ThreadMode.class))
+                .addStatement("return $T.$L", TypeName.get(ThreadMode.class), subscription.getThreadMode());
 
         classBuilder.addMethod(methodBuilder.build());
     }

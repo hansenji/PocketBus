@@ -1,7 +1,12 @@
 package com.vikingsen.sample;
 
+import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ScrollView;
@@ -19,9 +24,10 @@ public class MyActivity extends Activity {
     private static final String TAG = "MyActivity";
 
     private EventBus eventBus = EventBus.getDefault();
-    private Registrar registrar = new MyActivityBusRegistrar(this);
+    private Registrar registrar = new MyActivityRegistrar(this);
 
     private int i = 0;
+    private int stickyI = 0;
 
     private Button button;
     private TextView textView;
@@ -30,9 +36,12 @@ public class MyActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        EventBus.enableDebug(true);
+        EventBus.setDebug(true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sample);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermission();
+        }
 
         button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
@@ -44,6 +53,25 @@ public class MyActivity extends Activity {
 
         textView = (TextView) findViewById(R.id.textView);
         scrollView = (ScrollView) findViewById(R.id.scrollView);
+
+        if (savedInstanceState != null) {
+            stickyI = savedInstanceState.getInt(TAG);
+        }
+
+        eventBus.postSticky(++stickyI);
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(TAG, stickyI);
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private void requestPermission() {
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 101);
+        }
     }
 
     @Override
@@ -54,7 +82,7 @@ public class MyActivity extends Activity {
 
     @Override
     protected void onStop() {
-//        eventBus.unregister(registrar);
+        eventBus.unregister(registrar);
         eventBus.post(-1);
         super.onStop();
     }
@@ -89,6 +117,7 @@ public class MyActivity extends Activity {
 
     @Subscribe
     public void handleGC(GC event) {
+        Log.d(TAG, "GC Thread: " + Thread.currentThread().getName());
         System.gc();
     }
 

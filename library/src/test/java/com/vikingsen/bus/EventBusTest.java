@@ -16,15 +16,20 @@ public class EventBusTest {
 
     @Test
     public void testPost() {
-        eventBus.register(Foo.class, new EventSubscription<Foo>() {
+        eventBus.register(new EventSubscription<Foo>() {
             @Override
             public void handle(Foo foo) {
                 assertEquals("Foo", foo.getClass().getSimpleName());
             }
 
             @Override
-            public boolean equals(Object other) {
-                return this == other;
+            public Class<Foo> getEventClass() {
+                return Foo.class;
+            }
+
+            @Override
+            public ThreadMode getThreadMode() {
+                return ThreadMode.CURRENT;
             }
         });
     }
