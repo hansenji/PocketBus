@@ -1,4 +1,4 @@
-package com.vikingsen.bus;
+package com.vikingsen.pocketbus;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

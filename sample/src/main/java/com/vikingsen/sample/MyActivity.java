@@ -12,10 +12,10 @@ import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.vikingsen.bus.EventBus;
-import com.vikingsen.bus.Registrar;
-import com.vikingsen.bus.Subscribe;
-import com.vikingsen.bus.ThreadMode;
+import com.vikingsen.pocketbus.Bus;
+import com.vikingsen.pocketbus.Registrar;
+import com.vikingsen.pocketbus.Subscribe;
+import com.vikingsen.pocketbus.ThreadMode;
 
 import java.util.Locale;
 
@@ -23,7 +23,7 @@ public class MyActivity extends Activity {
 
     private static final String TAG = "MyActivity";
 
-    private EventBus eventBus = EventBus.getDefault();
+    private Bus bus = Bus.getDefault();
     private Registrar registrar = new MyActivityRegistrar(this);
 
     private int i = 0;
@@ -36,7 +36,7 @@ public class MyActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        EventBus.setDebug(true);
+        Bus.setDebug(true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sample);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -47,7 +47,7 @@ public class MyActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                eventBus.post(++i);
+                bus.post(++i);
             }
         });
 
@@ -58,7 +58,7 @@ public class MyActivity extends Activity {
             stickyI = savedInstanceState.getInt(TAG);
         }
 
-        eventBus.postSticky(++stickyI);
+        bus.postSticky(++stickyI);
     }
 
     @Override
@@ -77,32 +77,32 @@ public class MyActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        eventBus.register(registrar);
+        bus.register(registrar);
     }
 
     @Override
     protected void onStop() {
-        eventBus.unregister(registrar);
-        eventBus.post(-1);
+        bus.unregister(registrar);
+        bus.post(-1);
         super.onStop();
     }
 
     @Subscribe
     public void handleDefault(Integer i) {
-        eventBus.post(new Foo(i, "handleDefault", Thread.currentThread().getName()));
+        bus.post(new Foo(i, "handleDefault", Thread.currentThread().getName()));
     }
 
     @Subscribe(ThreadMode.BACKGROUND)
     public void handleBackground(Integer i) {
-        eventBus.post(new Foo(i, "handleBackground", Thread.currentThread().getName()));
+        bus.post(new Foo(i, "handleBackground", Thread.currentThread().getName()));
         if (i % 5 == 0) {
-            eventBus.post(new GC());
+            bus.post(new GC());
         }
     }
 
     @Subscribe(ThreadMode.MAIN)
     public void handleMain(Integer i) {
-        eventBus.post(new Foo(i, "handleMain", Thread.currentThread().getName()));
+        bus.post(new Foo(i, "handleMain", Thread.currentThread().getName()));
     }
 
     @Subscribe(ThreadMode.MAIN)

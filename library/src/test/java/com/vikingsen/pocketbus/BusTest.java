@@ -1,22 +1,22 @@
-package com.vikingsen.bus;
+package com.vikingsen.pocketbus;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class EventBusTest {
+public class BusTest {
 
-    private EventBus eventBus;
+    private Bus bus;
 
     @Before
     public void setup() {
-        eventBus = EventBus.getDefault();
+        bus = Bus.getDefault();
     }
 
     @Test
     public void testPost() {
-        eventBus.register(new EventSubscription<Foo>() {
+        bus.register(new EventSubscription<Foo>() {
             @Override
             public void handle(Foo foo) {
                 assertEquals("Foo", foo.getClass().getSimpleName());

@@ -1,6 +1,4 @@
-package com.vikingsen.bus.internal.codegen;
-
-import com.vikingsen.bus.ThreadMode;
+package com.vikingsen.pocketbus.internal.codegen;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
@@ -8,10 +6,10 @@ import javax.lang.model.type.TypeMirror;
 public class SubscriptionMethod {
     private final TypeMirror eventType;
     private final String name;
-    private final ThreadMode threadMode;
+    private final com.vikingsen.pocketbus.ThreadMode threadMode;
     private int index;
 
-    public SubscriptionMethod(ExecutableElement executableElement, ThreadMode threadMode) {
+    public SubscriptionMethod(ExecutableElement executableElement, com.vikingsen.pocketbus.ThreadMode threadMode) {
         this.name = executableElement.getSimpleName().toString();
         this.eventType = executableElement.getParameters().get(0).asType();
         this.threadMode = threadMode;
@@ -25,7 +23,7 @@ public class SubscriptionMethod {
         return eventType;
     }
 
-    public ThreadMode getThreadMode() {
+    public com.vikingsen.pocketbus.ThreadMode getThreadMode() {
         return threadMode;
     }
 

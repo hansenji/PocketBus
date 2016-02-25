@@ -1,4 +1,4 @@
-package com.vikingsen.bus;
+package com.vikingsen.pocketbus;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -24,11 +24,11 @@ import rx.schedulers.Schedulers;
 /**
  * TODO: scheduled listeners (EventSubscription) cleanup
  */
-public class EventBus {
-    private static final String TAG = "EventBus";
+public class Bus {
+    private static final String TAG = "PocketBus";
 
     @NonNull
-    private static EventBus defaultBus = new Builder().build();
+    private static Bus defaultBus = new Builder().build();
     private static boolean debug = false;
 
     @NonNull
@@ -57,7 +57,7 @@ public class EventBus {
     private final Object stickyLock = new Object();
 
 
-    private EventBus(@NonNull Scheduler mainScheduler, @NonNull Scheduler currentScheduler, @NonNull Scheduler backgroundScheduler, int eventCleanupCount) {
+    private Bus(@NonNull Scheduler mainScheduler, @NonNull Scheduler currentScheduler, @NonNull Scheduler backgroundScheduler, int eventCleanupCount) {
         this.mainScheduler = mainScheduler;
         this.currentScheduler = currentScheduler;
         this.backgroundScheduler = backgroundScheduler;
@@ -65,11 +65,11 @@ public class EventBus {
     }
 
     @NonNull
-    public static EventBus getDefault() {
+    public static Bus getDefault() {
         return defaultBus;
     }
 
-    public static void setDefault(@NonNull EventBus bus) {
+    public static void setDefault(@NonNull Bus bus) {
         defaultBus = bus;
     }
 
@@ -411,7 +411,7 @@ public class EventBus {
         }
 
         @NonNull
-        public EventBus build() {
+        public Bus build() {
             if (mainScheduler == null) {
                 mainScheduler = AndroidSchedulers.mainThread();
             }
@@ -421,7 +421,7 @@ public class EventBus {
             if (backgroundScheduler == null) {
                 backgroundScheduler = Schedulers.from(Executors.newFixedThreadPool(backgroundThreadPoolSize));
             }
-            return new EventBus(mainScheduler, currentScheduler, backgroundScheduler, eventCleanupCount);
+            return new Bus(mainScheduler, currentScheduler, backgroundScheduler, eventCleanupCount);
         }
     }
 }

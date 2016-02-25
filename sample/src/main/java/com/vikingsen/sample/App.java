@@ -3,7 +3,7 @@ package com.vikingsen.sample;
 import android.app.Application;
 
 import com.squareup.leakcanary.LeakCanary;
-import com.vikingsen.bus.EventBus;
+import com.vikingsen.pocketbus.Bus;
 
 public class App extends Application {
 
@@ -11,10 +11,10 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
         LeakCanary.install(this);
-        EventBus eventBus = new EventBus.Builder()
+        Bus bus = new Bus.Builder()
                 .setEventCleanupCount(21)
                 .build();
-        EventBus.setDefault(eventBus);
-        EventBus.setDebug(true);
+        Bus.setDefault(bus);
+        Bus.setDebug(true);
     }
 }

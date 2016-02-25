@@ -1,4 +1,4 @@
-package com.vikingsen.bus;
+package com.vikingsen.pocketbus;
 
 public enum ThreadMode {
     CURRENT, // Schedulers.trampoline()

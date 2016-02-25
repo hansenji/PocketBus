@@ -1,4 +1,4 @@
-package com.vikingsen.bus;
+package com.vikingsen.pocketbus;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

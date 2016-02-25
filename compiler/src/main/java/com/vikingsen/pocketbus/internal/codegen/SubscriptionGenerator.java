@@ -1,4 +1,4 @@
-package com.vikingsen.bus.internal.codegen;
+package com.vikingsen.pocketbus.internal.codegen;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -8,9 +8,7 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
-import com.vikingsen.bus.EventSubscription;
-import com.vikingsen.bus.Registrar;
-import com.vikingsen.bus.ThreadMode;
+import com.vikingsen.pocketbus.Registrar;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,7 +22,7 @@ import javax.lang.model.type.TypeMirror;
 public class SubscriptionGenerator {
 
     private static final ParameterizedTypeName LIST_TYPE = ParameterizedTypeName.get(ClassName.get(List.class),
-            ParameterizedTypeName.get(ClassName.get(EventSubscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT)));
+            ParameterizedTypeName.get(ClassName.get(com.vikingsen.pocketbus.EventSubscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT)));
 
     Set<SubscriptionMethod> methods = new LinkedHashSet<>();
 
@@ -80,7 +78,7 @@ public class SubscriptionGenerator {
         for (SubscriptionMethod subscription : methods) {
             String name = GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex();
 
-            ParameterizedTypeName subscriptionType = ParameterizedTypeName.get(ClassName.get(EventSubscription.class),
+            ParameterizedTypeName subscriptionType = ParameterizedTypeName.get(ClassName.get(com.vikingsen.pocketbus.EventSubscription.class),
                     TypeName.get(subscription.getEventType()));
 
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(subscriptionType, name, Modifier.PRIVATE);
@@ -135,8 +133,8 @@ public class SubscriptionGenerator {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_GET_THREAD_MODE)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .returns(TypeName.get(ThreadMode.class))
-                .addStatement("return $T.$L", TypeName.get(ThreadMode.class), subscription.getThreadMode());
+                .returns(TypeName.get(com.vikingsen.pocketbus.ThreadMode.class))
+                .addStatement("return $T.$L", TypeName.get(com.vikingsen.pocketbus.ThreadMode.class), subscription.getThreadMode());
 
         classBuilder.addMethod(methodBuilder.build());
     }
