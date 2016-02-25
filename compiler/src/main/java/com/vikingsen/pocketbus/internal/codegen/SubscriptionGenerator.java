@@ -9,6 +9,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
 import com.vikingsen.pocketbus.Registrar;
+import com.vikingsen.pocketbus.Subscription;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,7 +23,7 @@ import javax.lang.model.type.TypeMirror;
 public class SubscriptionGenerator {
 
     private static final ParameterizedTypeName LIST_TYPE = ParameterizedTypeName.get(ClassName.get(List.class),
-            ParameterizedTypeName.get(ClassName.get(com.vikingsen.pocketbus.EventSubscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT)));
+            ParameterizedTypeName.get(ClassName.get(Subscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT)));
 
     Set<SubscriptionMethod> methods = new LinkedHashSet<>();
 
@@ -78,7 +79,7 @@ public class SubscriptionGenerator {
         for (SubscriptionMethod subscription : methods) {
             String name = GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex();
 
-            ParameterizedTypeName subscriptionType = ParameterizedTypeName.get(ClassName.get(com.vikingsen.pocketbus.EventSubscription.class),
+            ParameterizedTypeName subscriptionType = ParameterizedTypeName.get(ClassName.get(Subscription.class),
                     TypeName.get(subscription.getEventType()));
 
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(subscriptionType, name, Modifier.PRIVATE);

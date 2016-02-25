@@ -16,7 +16,7 @@ public class BusTest {
 
     @Test
     public void testPost() {
-        bus.register(new EventSubscription<Foo>() {
+        bus.register(new Subscription<Foo>() {
             @Override
             public void handle(Foo foo) {
                 assertEquals("Foo", foo.getClass().getSimpleName());

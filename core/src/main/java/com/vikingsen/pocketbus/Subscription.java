@@ -1,6 +1,6 @@
 package com.vikingsen.pocketbus;
 
-public interface EventSubscription<T> {
+public interface Subscription<T> {
     void handle(T t);
     Class<T> getEventClass();
     ThreadMode getThreadMode();
