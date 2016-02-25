@@ -1,4 +1,6 @@
 apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'bintray-release'
 
 sourceCompatibility = JavaVersion.VERSION_1_7
 targetCompatibility = JavaVersion.VERSION_1_7
@@ -8,4 +10,40 @@ dependencies {
 
     compile 'com.google.auto.service:auto-service:1.0-rc2'
     compile 'com.squareup:javapoet:1.5.1'
+}
+
+def libraryGroupId = 'com.vikingsen'
+def libraryBaseName = 'pocketbus-compiler'
+
+// ======== MAVEN DEPLOY to local cache or nexus repo (to make accessible to local projects) (command: ./gradlew clean aRel uploadArchives) ========
+uploadArchives {
+    repositories {
+        // deploy to local
+        mavenDeployer {
+            repository (url: "file://${System.env.HOME}/.m2/repository/")
+            pom.groupId = libraryGroupId
+            pom.artifactId = libraryBaseName
+            pom.version = libraryVersion + "-SNAPSHOT"
+            pom.packaging = 'aar'
+            uniqueVersion = false // don't put in a timestamp on the filename (other project will not be able to depend on it)
+            pom.whenConfigured {pom ->
+//                println pom.version
+                def dep = pom.dependencies.find { dep ->
+                    dep.groupId == 'bus'
+                }
+                dep.version = pom.version
+                dep.groupId = pom.groupId
+            }
+        }
+    }
+}
+
+// ======= BINTRAY DEPLOY (command: $ ./gradlew clean build bintrayUpload -PbintrayUser=BINTRAY_USERNAME -PbintrayKey=BINTRAY_KEY -PdryRun=false) ====
+publish {
+    groupId = libraryGroupId
+    artifactId = libraryBaseName
+    uploadName = 'PocketBus-Compiler'
+    version = libraryVersion
+    autoPublish = false
+    dryRun = false
 }
