@@ -7,22 +7,22 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:2.0.0-beta5'
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
+        classpath 'com.novoda:bintray-release:0.2.7'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
     }
 }
 
+def majorVersion = 0
+def minorVersion = 1
+def patchVersion = 0
+def versionCode = majorVersion * 10000 + minorVersion * 100 + patchVersion
+def versionName = "$majorVersion.$minorVersion.$patchVersion"
+
 allprojects {
     repositories {
         jcenter()
     }
-
-    def majorVersion = 0
-    def minorVersion = 0
-    def patchVersion = 0
-    def versionCode = majorVersion * 10000 + minorVersion * 100 + patchVersion
-    def versionName = "$majorVersion.$minorVersion.$patchVersion"
-
 }
 
 task clean(type: Delete) {
@@ -30,7 +30,8 @@ task clean(type: Delete) {
 }
 
 ext {
-    support_lib_version = "23.1.1"
+    supportLibVersion = "23.1.1"
+    libraryVersion = "$versionName"
 }
 
 
