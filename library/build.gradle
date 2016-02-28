@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'jacoco'
 apply plugin: 'maven'
 apply plugin: 'bintray-release'
 
@@ -11,9 +12,19 @@ android {
         targetSdkVersion 23
         versionCode versionCode
         versionName libraryVersion
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            testCoverageEnabled = true
+        }
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
         targetCompatibility JavaVersion.VERSION_1_7
@@ -29,10 +40,46 @@ dependencies {
     compile project(path: ':core')
 
     testCompile 'junit:junit:4.12'
+    testCompile 'org.robolectric:robolectric:3.1-SNAPSHOT'
+    testCompile 'org.mockito:mockito-core:2.0.41-beta'
 }
 
 def libraryGroupId = 'com.vikingsen'
 def libraryBaseName = 'pocketbus'
+
+tasks.withType(Test) {
+    testLogging {
+        exceptionFormat "full"
+    }
+}
+
+def coverageSourceDirs = [
+        'src/main/java',
+]
+
+jacoco {
+    toolVersion "0.7.2.201409121644"
+}
+
+task testDebugJacoco(type: JacocoReport, dependsOn: "testDebugUnitTest") {
+    group = "Reporting"
+    description = "Generate Jacoco coverage reports after running tests."
+    classDirectories = fileTree(
+            dir: "$buildDir/intermediates/classes/debug",
+            excludes: ['**/R.class',
+                       '**/R$*.class',
+                       '**/*$ViewInjector*.*',
+                       '**/BuildConfig.*',
+                       '**/Manifest*.*']
+    )
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+    additionalSourceDirs = files(coverageSourceDirs)
+    sourceDirectories = files(coverageSourceDirs)
+    executionData = files("$buildDir/jacoco/testDebugUnitTest.exec")
+}
 
 // ======== MAVEN DEPLOY to local cache or nexus repo (to make accessible to local projects) (command: ./gradlew clean aRel uploadArchives) ========
 uploadArchives {

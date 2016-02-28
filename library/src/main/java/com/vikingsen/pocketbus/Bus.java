@@ -35,7 +35,7 @@ public class Bus {
     @NonNull
     private final Scheduler backgroundScheduler;
 
-    private final int eventCleanupCount;
+    protected final int eventCleanupCount;
     @NonNull
     private final AtomicInteger eventCounter = new AtomicInteger();
 
@@ -106,6 +106,9 @@ public class Bus {
         }
 
         Class<? super T> eventClass = subscription.getEventClass();
+        if (eventClass == null) {
+            throw new NullPointerException("Subscription.getEventClass() cannot be null");
+        }
         synchronized (listenerLock) {
             if (!listenerMap.containsKey(eventClass)) {
                 listenerMap.put(eventClass, new LinkedList<WeakReference<Subscription>>());
@@ -138,6 +141,9 @@ public class Bus {
         }
 
         Class<? super T> eventClass = subscription.getEventClass();
+        if (eventClass == null) {
+            throw new NullPointerException("Subscription.getEventClass() cannot be null");
+        }
         synchronized (listenerLock) {
             List<WeakReference<Subscription>> subscriptions = listenerMap.get(eventClass);
             if (subscriptions != null) {
@@ -153,7 +159,10 @@ public class Bus {
         }
     }
 
-    public <T> void post(@NonNull T event) {
+    public <T> void post(T event) {
+        if (event == null) {
+            throw new NullPointerException("Event cannot be null");
+        }
         synchronized (listenerLock) {
             for (Map.Entry<Class, List<WeakReference<Subscription>>> entry : currentThreadListeners.entrySet()) {
                 checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.CURRENT);
@@ -191,7 +200,10 @@ public class Bus {
         }
     }
 
-    public <T> void postSticky(@NonNull T event) {
+    public <T> void postSticky(T event) {
+        if (event == null) {
+            throw new NullPointerException("Event cannot be null");
+        }
         synchronized (stickyLock) {
             stickyEvents.put(event.getClass(), event);
         }
@@ -208,7 +220,7 @@ public class Bus {
      * Used to post sticky events to a newly registered listener
      */
     private <T> void postStickyOnRegistration(@NonNull Subscription<? super T> subscription) {
-        Class<? super T> eventClass = subscription.getEventClass();
+        Class<? super T> eventClass = subscription.getEventClass(); // This check is handled by register.
         ThreadMode threadMode = subscription.getThreadMode();
         synchronized (stickyLock) {
             for (Map.Entry<Class<?>, ? super Object> entry : stickyEvents.entrySet()) {
@@ -371,8 +383,8 @@ public class Bus {
         private Scheduler currentScheduler;
         @Nullable
         private Scheduler backgroundScheduler;
-        private int backgroundThreadPoolSize = DEFAULT_BACKGROUND_THREAD_POOL_SIZE;
-        private int eventCleanupCount = DEFAULT_EVENT_CLEANUP_COUNT;
+        protected int backgroundThreadPoolSize = DEFAULT_BACKGROUND_THREAD_POOL_SIZE;
+        protected int eventCleanupCount = DEFAULT_EVENT_CLEANUP_COUNT;
 
         @NonNull
         public Builder setMainScheduler(@NonNull Scheduler scheduler) {
