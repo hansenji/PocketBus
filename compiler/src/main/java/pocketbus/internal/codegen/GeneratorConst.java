@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus.internal.codegen;
+package pocketbus.internal.codegen;
 
 public class GeneratorConst {
     public static final String ANDROID_PREFIX = "android.";

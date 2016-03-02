@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus;
+package pocketbus;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,7 +13,10 @@ import java.util.UUID;
 import rx.schedulers.Schedulers;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(RobolectricGradleTestRunner.class)
@@ -152,7 +155,10 @@ public class BusTest {
         };
         bus.register(subscription1);
         assertEquals(1, count[0]);
-        bus.removeSticky(Integer.class);
+        assertEquals(Integer.valueOf(0), bus.getSticky(Integer.class));
+        assertTrue("Remove Sticky Event", bus.removeSticky(Integer.class));
+        assertFalse("Remove Sticky Event", bus.removeSticky(Integer.class));
+        assertNull(bus.getSticky(Integer.class));
         bus.register(subscription2);
         assertEquals(1, count[0]);
     }

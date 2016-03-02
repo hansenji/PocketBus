@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus.internal.codegen;
+package pocketbus.internal.codegen;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -8,8 +8,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
-import com.vikingsen.pocketbus.Registrar;
-import com.vikingsen.pocketbus.Subscription;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,6 +17,10 @@ import java.util.Set;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
+
+import pocketbus.Registrar;
+import pocketbus.Subscription;
+import pocketbus.ThreadMode;
 
 public class SubscriptionGenerator {
 
@@ -134,8 +136,8 @@ public class SubscriptionGenerator {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(GeneratorConst.METHOD_GET_THREAD_MODE)
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
-                .returns(TypeName.get(com.vikingsen.pocketbus.ThreadMode.class))
-                .addStatement("return $T.$L", TypeName.get(com.vikingsen.pocketbus.ThreadMode.class), subscription.getThreadMode());
+                .returns(TypeName.get(ThreadMode.class))
+                .addStatement("return $T.$L", TypeName.get(ThreadMode.class), subscription.getThreadMode());
 
         classBuilder.addMethod(methodBuilder.build());
     }

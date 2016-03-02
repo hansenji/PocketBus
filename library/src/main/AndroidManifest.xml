@@ -1,4 +1,4 @@
-<manifest package="com.vikingsen.pocketbus"
+<manifest package="pocketbus"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application>

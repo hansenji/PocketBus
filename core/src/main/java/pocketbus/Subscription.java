@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus;
+package pocketbus;
 
 public interface Subscription<T> {
     void handle(T t);

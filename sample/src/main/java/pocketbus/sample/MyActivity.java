@@ -1,4 +1,4 @@
-package com.vikingsen.sample;
+package pocketbus.sample;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -12,12 +12,12 @@ import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.vikingsen.pocketbus.Bus;
-import com.vikingsen.pocketbus.Registrar;
-import com.vikingsen.pocketbus.Subscribe;
-import com.vikingsen.pocketbus.ThreadMode;
-
 import java.util.Locale;
+
+import pocketbus.Bus;
+import pocketbus.Registrar;
+import pocketbus.Subscribe;
+import pocketbus.ThreadMode;
 
 public class MyActivity extends Activity {
 

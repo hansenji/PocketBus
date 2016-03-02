@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus;
+package pocketbus;
 
 public class Foo {
     public final String uid;

@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus;
+package pocketbus;
 
 import java.util.List;
 

@@ -1,9 +1,9 @@
-package com.vikingsen.sample;
+package pocketbus.sample;
 
 import android.app.Application;
 
 import com.squareup.leakcanary.LeakCanary;
-import com.vikingsen.pocketbus.Bus;
+import pocketbus.Bus;
 
 public class App extends Application {
 

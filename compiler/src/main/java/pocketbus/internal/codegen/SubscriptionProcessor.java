@@ -1,7 +1,6 @@
-package com.vikingsen.pocketbus.internal.codegen;
+package pocketbus.internal.codegen;
 
 import com.google.common.collect.ImmutableSet;
-import com.vikingsen.pocketbus.Subscribe;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,6 +18,8 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 
+import pocketbus.Subscribe;
+
 import static javax.tools.Diagnostic.Kind.ERROR;
 import static javax.tools.Diagnostic.Kind.WARNING;
 
@@ -32,8 +33,8 @@ public class SubscriptionProcessor {
         this.elements = elements;
     }
 
-    public Map<TypeElement, com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator> findAndParseTargets(RoundEnvironment roundEnv) {
-        LinkedHashMap<TypeElement, com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator> targetMap = new LinkedHashMap<>();
+    public Map<TypeElement, SubscriptionGenerator> findAndParseTargets(RoundEnvironment roundEnv) {
+        LinkedHashMap<TypeElement, SubscriptionGenerator> targetMap = new LinkedHashMap<>();
         Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(Subscribe.class);
         for (Element element : elements) {
             TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
@@ -55,7 +56,7 @@ public class SubscriptionProcessor {
             validateBindingPackage(element);
             validateVisibility(element);
 
-            com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator generator = getOrCreateTargetClass(targetMap, enclosingElement);
+            SubscriptionGenerator generator = getOrCreateTargetClass(targetMap, enclosingElement);
             SubscriptionMethod method = new SubscriptionMethod(executableElement, subscribeAnnotation.value());
             if (!generator.addMethod(method)) {
                 error(String.format("@%s method cannot have multiple subscriptions for type %s on ThreadMode.%s (%s.%s)",
@@ -84,11 +85,11 @@ public class SubscriptionProcessor {
         TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
         String qualifiedName = enclosingElement.getQualifiedName().toString();
 
-        if (qualifiedName.startsWith(GeneratorConst.ANDROID_PREFIX)) {
+        if (qualifiedName.startsWith(pocketbus.internal.codegen.GeneratorConst.ANDROID_PREFIX)) {
             error(String.format("@%s-annotated interface incorrectly in Android framework package. (%s.%s)", Subscribe.class.getSimpleName(), qualifiedName,
                     element.getSimpleName()), element);
         }
-        if (qualifiedName.startsWith(GeneratorConst.JAVA_PREFIX)) {
+        if (qualifiedName.startsWith(pocketbus.internal.codegen.GeneratorConst.JAVA_PREFIX)) {
             error(String.format("@%s-annotated interface incorrectly in Java framework package. (%s.%s)", Subscribe.class.getSimpleName(), qualifiedName,
                     element.getSimpleName()), element);
         }
@@ -117,14 +118,14 @@ public class SubscriptionProcessor {
         }
     }
 
-    private com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator getOrCreateTargetClass(LinkedHashMap<TypeElement, com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator> targetMap, TypeElement element) {
-        com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator generator = targetMap.get(element);
+    private SubscriptionGenerator getOrCreateTargetClass(LinkedHashMap<TypeElement, SubscriptionGenerator> targetMap, TypeElement element) {
+        SubscriptionGenerator generator = targetMap.get(element);
         if (generator == null) {
             TypeMirror targetType = element.asType();
             String classPackage = getPackageName(element);
-            String className = getClassName(element, classPackage) + GeneratorConst.REGISTRAR_SUFFIX;
+            String className = getClassName(element, classPackage) + pocketbus.internal.codegen.GeneratorConst.REGISTRAR_SUFFIX;
 
-            generator = new com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator(classPackage, className, targetType);
+            generator = new SubscriptionGenerator(classPackage, className, targetType);
             targetMap.put(element, generator);
         }
         return generator;

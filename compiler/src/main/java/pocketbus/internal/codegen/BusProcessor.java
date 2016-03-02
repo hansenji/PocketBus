@@ -1,9 +1,8 @@
-package com.vikingsen.pocketbus.internal.codegen;
+package pocketbus.internal.codegen;
 
 import com.google.auto.service.AutoService;
 import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.JavaFile;
-import com.vikingsen.pocketbus.Subscribe;
 
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +18,8 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+
+import pocketbus.Subscribe;
 
 import static javax.tools.Diagnostic.Kind.ERROR;
 
@@ -55,10 +56,10 @@ public final class BusProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         messager.printMessage(Diagnostic.Kind.NOTE, "*****Bus Processor*****");
-        Map<TypeElement, com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator> subscriptionMap = subscriptionProcessor.findAndParseTargets(roundEnv);
-        for (Map.Entry<TypeElement, com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator> entry : subscriptionMap.entrySet()) {
+        Map<TypeElement, SubscriptionGenerator> subscriptionMap = subscriptionProcessor.findAndParseTargets(roundEnv);
+        for (Map.Entry<TypeElement, SubscriptionGenerator> entry : subscriptionMap.entrySet()) {
             TypeElement typeElement = entry.getKey();
-            com.vikingsen.pocketbus.internal.codegen.SubscriptionGenerator generator = entry.getValue();
+            SubscriptionGenerator generator = entry.getValue();
             try {
                 JavaFile javaFile = generator.generate();
                 javaFile.writeTo(filer);

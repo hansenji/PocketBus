@@ -1,4 +1,4 @@
-package com.vikingsen.pocketbus;
+package pocketbus;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -210,9 +210,17 @@ public class Bus {
         post(event);
     }
 
-    public <T> void removeSticky(@NonNull Class<T> eventClass) {
+    public <T> boolean removeSticky(@NonNull Class<T> eventClass) {
         synchronized (stickyLock) {
-            stickyEvents.remove(eventClass);
+            return stickyEvents.remove(eventClass) != null;
+        }
+    }
+
+    @Nullable
+    public <T> T getSticky(@NonNull Class<T> eventClass) {
+        synchronized (stickyLock) {
+            //noinspection unchecked
+            return (T) stickyEvents.get(eventClass);
         }
     }
 
