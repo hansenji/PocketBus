@@ -9,7 +9,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -49,16 +49,31 @@ public class SubscriptionGenerator {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className)
                 .addSuperinterface(ClassName.get(Registrar.class))
                 .addField(TypeName.get(targetType), GeneratorConst.VAR_TARGET, Modifier.PRIVATE, Modifier.FINAL)
-                .addMethod(MethodSpec.constructorBuilder()
-                        .addModifiers(Modifier.PUBLIC)
-                        .addParameter(TypeName.get(targetType), GeneratorConst.VAR_TARGET)
-                        .addStatement("this.$N = $N", GeneratorConst.VAR_TARGET, GeneratorConst.VAR_TARGET)
-                        .build());
+                .addField(LIST_TYPE, GeneratorConst.VAR_SUBSCRIPTIONS, Modifier.PRIVATE, Modifier.FINAL);
 
+        generateConstructor(classBuilder);
         generateSubscriptions(classBuilder);
         generateMethod(classBuilder);
 
         return JavaFile.builder(classPackage, classBuilder.build()).build();
+    }
+
+    private void generateConstructor(TypeSpec.Builder classBuilder) {
+        MethodSpec.Builder builder = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(TypeName.get(targetType), GeneratorConst.VAR_TARGET)
+                .addStatement("this.$N = $N", GeneratorConst.VAR_TARGET, GeneratorConst.VAR_TARGET)
+                .addStatement("$T $N = new $T()", LIST_TYPE, GeneratorConst.VAR_SUBSCRIPTIONS, ParameterizedTypeName.get(ClassName.get(ArrayList.class),
+                        ParameterizedTypeName.get(ClassName.get(Subscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT))));
+
+        for (SubscriptionMethod method : methods) {
+            builder.addStatement("$N.add($N)", GeneratorConst.VAR_SUBSCRIPTIONS, GeneratorConst.VAR_SUBSCRIPTION + method.getIndex());
+        }
+
+        builder.addStatement("this.$N = $T.unmodifiableList($N)", GeneratorConst.VAR_SUBSCRIPTIONS, ClassName.get(Collections.class),
+                GeneratorConst.VAR_SUBSCRIPTIONS);
+
+        classBuilder.addMethod(builder.build());
     }
 
     private void generateMethod(TypeSpec.Builder classBuilder) {
@@ -72,12 +87,12 @@ public class SubscriptionGenerator {
     }
 
     private void generateSubscriptions(TypeSpec.Builder classBuilder) {
-        StringBuilder stringBuilder = new StringBuilder("$T.unmodifiableList($T.asList(");
-        Object[] subscriptionsArgs = new Object[methods.size() + 2];
-        subscriptionsArgs[0] = ClassName.get(Collections.class);
-        subscriptionsArgs[1] = ClassName.get(Arrays.class);
+//        StringBuilder stringBuilder = new StringBuilder("$T.unmodifiableList($T.asList(");
+//        Object[] subscriptionsArgs = new Object[methods.size() + 2];
+//        subscriptionsArgs[0] = ClassName.get(Collections.class);
+//        subscriptionsArgs[1] = ClassName.get(Arrays.class);
 
-        int i = 2;
+//        int i = 2;
         for (SubscriptionMethod subscription : methods) {
             String name = GeneratorConst.VAR_SUBSCRIPTION + subscription.getIndex();
 
@@ -87,18 +102,18 @@ public class SubscriptionGenerator {
             FieldSpec.Builder fieldBuilder = FieldSpec.builder(subscriptionType, name, Modifier.PRIVATE);
             fieldBuilder.initializer("$L", generateAnonymousSubscription(subscriptionType, subscription));
             classBuilder.addField(fieldBuilder.build());
-            subscriptionsArgs[i] = name;
-            if (i++ > 2) {
-                stringBuilder.append(",");
-            }
-            stringBuilder.append("$N");
+//            subscriptionsArgs[i] = name;
+//            if (i++ > 2) {
+//                stringBuilder.append(",");
+//            }
+//            stringBuilder.append("$N");
         }
 
-        stringBuilder.append("))");
+//        stringBuilder.append("))");
 
-        FieldSpec.Builder subscriptionsBuilder = FieldSpec.builder(LIST_TYPE, GeneratorConst.VAR_SUBSCRIPTIONS, Modifier.PRIVATE, Modifier.FINAL);
-        subscriptionsBuilder.initializer(stringBuilder.toString(), subscriptionsArgs);
-        classBuilder.addField(subscriptionsBuilder.build());
+//        FieldSpec.Builder subscriptionsBuilder = FieldSpec.builder(LIST_TYPE, GeneratorConst.VAR_SUBSCRIPTIONS, Modifier.PRIVATE, Modifier.FINAL);
+//        subscriptionsBuilder.initializer(stringBuilder.toString(), subscriptionsArgs);
+//        classBuilder.addField(subscriptionsBuilder.build());
     }
 
     private TypeSpec generateAnonymousSubscription(ParameterizedTypeName subscriptionType, SubscriptionMethod subscription) {
