@@ -5,7 +5,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.0.0-beta6'
+        classpath 'com.android.tools.build:gradle:2.1.0-alpha3'
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
         classpath 'com.novoda:bintray-release:0.2.7'
         // NOTE: Do not place your application dependencies here; they belong
@@ -14,15 +14,15 @@ buildscript {
 }
 
 def majorVersion = 0
-def minorVersion = 2
-def patchVersion = 1
+def minorVersion = 3
+def patchVersion = 0
 def versionCode = majorVersion * 10000 + minorVersion * 100 + patchVersion
 def versionName = "$majorVersion.$minorVersion.$patchVersion"
 
 allprojects {
     repositories {
-        jcenter()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+        jcenter()
     }
 }
 

@@ -31,6 +31,7 @@ public final class BusProcessor extends AbstractProcessor {
     private Elements elements;
     private Types types;
     private SubscriptionProcessor subscriptionProcessor;
+    private RegistryProcessor registryProcessor;
 
     @Override
     public SourceVersion getSupportedSourceVersion() {
@@ -46,6 +47,7 @@ public final class BusProcessor extends AbstractProcessor {
         types = processingEnv.getTypeUtils();
         // Create processors
         subscriptionProcessor = new SubscriptionProcessor(messager, elements);
+        registryProcessor = new RegistryProcessor(messager, elements);
     }
 
     @Override
@@ -67,6 +69,17 @@ public final class BusProcessor extends AbstractProcessor {
                 error(typeElement, "Unable to generate subscriptions for %s: %s", typeElement, e.getMessage());
             }
         }
+        // Get registry
+        RegistryGenerator registryGenerator = registryProcessor.findAndParseTarget(roundEnv, subscriptionMap);
+        if (registryGenerator != null) {
+            try {
+                JavaFile javaFile = registryGenerator.generate();
+                javaFile.writeTo(filer);
+            } catch (Exception e) {
+                error(registryGenerator.getTypeElement(), "Unable to generate registry %s", e.getMessage());
+            }
+        }
+
         return false;
     }
 

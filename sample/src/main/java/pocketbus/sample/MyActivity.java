@@ -15,7 +15,6 @@ import android.widget.TextView;
 import java.util.Locale;
 
 import pocketbus.Bus;
-import pocketbus.Registrar;
 import pocketbus.Subscribe;
 import pocketbus.ThreadMode;
 
@@ -24,7 +23,6 @@ public class MyActivity extends Activity {
     private static final String TAG = "MyActivity";
 
     private Bus bus = Bus.getDefault();
-    private Registrar registrar = new MyActivityRegistrar(this);
 
     private int i = 0;
     private int stickyI = 0;
@@ -77,12 +75,12 @@ public class MyActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        bus.register(registrar);
+        bus.register(this);
     }
 
     @Override
     protected void onStop() {
-        bus.unregister(registrar);
+        bus.unregister(this);
         bus.post(-1);
         super.onStop();
     }

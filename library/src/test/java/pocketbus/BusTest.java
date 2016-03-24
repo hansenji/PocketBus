@@ -24,6 +24,8 @@ import static org.junit.Assert.fail;
 public class BusTest {
 
     private Subscription<Foo> subscriptionMain = new Subscription<Foo>() {
+        private Foo target = new Foo("subMain");
+
         @Override
         public void handle(Foo foo) {
             assertMain(foo);
@@ -38,9 +40,16 @@ public class BusTest {
         public ThreadMode getThreadMode() {
             return ThreadMode.MAIN;
         }
+
+        @Override
+        public Foo getTarget() {
+            return target;
+        }
     };
 
     private Subscription<Foo> subscriptionBackground = new Subscription<Foo>() {
+        private Foo target = new Foo("subBack");
+
         @Override
         public void handle(Foo foo) {
             assertBackground(foo);
@@ -55,9 +64,16 @@ public class BusTest {
         public ThreadMode getThreadMode() {
             return ThreadMode.BACKGROUND;
         }
+
+        @Override
+        public Foo getTarget() {
+            return target;
+        }
     };
 
     private Subscription<Foo> subscriptionCurrent = new Subscription<Foo>() {
+        private Foo target = new Foo("subCurr");
+
         @Override
         public void handle(Foo foo) {
             assertCurrent(foo);
@@ -71,6 +87,11 @@ public class BusTest {
         @Override
         public ThreadMode getThreadMode() {
             return ThreadMode.CURRENT;
+        }
+
+        @Override
+        public Foo getTarget() {
+            return target;
         }
     };
     private String uid;
@@ -120,6 +141,8 @@ public class BusTest {
         bus.postSticky(new Foo("foo"));
         final int[] count = {0};
         Subscription<Integer> subscription1 = new Subscription<Integer>() {
+            private Integer target = 1;
+
             @Override
             public void handle(Integer integer) {
                 assertEquals(Integer.valueOf(0), integer);
@@ -134,9 +157,16 @@ public class BusTest {
             @Override
             public ThreadMode getThreadMode() {
                 return ThreadMode.CURRENT;
+            }
+
+            @Override
+            public Integer getTarget() {
+                return target;
             }
         };
         Subscription<Integer> subscription2 = new Subscription<Integer>() {
+            public Integer target = 2;
+
             @Override
             public void handle(Integer integer) {
                 assertEquals(Integer.valueOf(0), integer);
@@ -151,6 +181,11 @@ public class BusTest {
             @Override
             public ThreadMode getThreadMode() {
                 return ThreadMode.CURRENT;
+            }
+
+            @Override
+            public Integer getTarget() {
+                return target;
             }
         };
         bus.register(subscription1);
@@ -223,6 +258,8 @@ public class BusTest {
                 .setEventCleanupCount(1)
                 .build();
         Subscription<Foo> subscription = new Subscription<Foo>() {
+            private Foo target = new Foo("sub");
+
             @Override
             public void handle(Foo foo) {
 
@@ -236,6 +273,11 @@ public class BusTest {
             @Override
             public ThreadMode getThreadMode() {
                 return ThreadMode.CURRENT;
+            }
+
+            @Override
+            public Foo getTarget() {
+                return target;
             }
         };
         try {
@@ -261,6 +303,8 @@ public class BusTest {
                 .setEventCleanupCount(1)
                 .build();
         Subscription<Foo> subscription1 = new Subscription<Foo>() {
+            private Foo target = new Foo("sub1");
+
             @Override
             public void handle(Foo foo) {
                 assertMain(foo);
@@ -274,9 +318,16 @@ public class BusTest {
             @Override
             public ThreadMode getThreadMode() {
                 return ThreadMode.CURRENT;
+            }
+
+            @Override
+            public Foo getTarget() {
+                return target;
             }
         };
         Subscription<Foo> subscription2 = new Subscription<Foo>() {
+            private Foo target = new Foo("sub2");
+
             @Override
             public void handle(Foo foo) {
                 assertMain(foo);
@@ -291,8 +342,15 @@ public class BusTest {
             public ThreadMode getThreadMode() {
                 return ThreadMode.CURRENT;
             }
+
+            @Override
+            public Foo getTarget() {
+                return target;
+            }
         };
         Subscription<Integer> subscription3 = new Subscription<Integer>() {
+            private Integer target = 3;
+
             @Override
             public void handle(Integer integer) {
                 fail("Method handle in Integer Subscription should never be called");
@@ -307,8 +365,15 @@ public class BusTest {
             public ThreadMode getThreadMode() {
                 return ThreadMode.CURRENT;
             }
+
+            @Override
+            public Integer getTarget() {
+                return target;
+            }
         };
         Subscription<Foo> subscription4 = new Subscription<Foo>() {
+            private Foo target = new Foo("sub4");
+
             @Override
             public void handle(Foo foo) {
                 assertBackground(foo);
@@ -323,8 +388,15 @@ public class BusTest {
             public ThreadMode getThreadMode() {
                 return ThreadMode.BACKGROUND;
             }
+
+            @Override
+            public Foo getTarget() {
+                return target;
+            }
         };
         Subscription<Foo> subscription5 = new Subscription<Foo>() {
+            private Foo target = new Foo("sub5");
+
             @Override
             public void handle(Foo foo) {
                 assertMain(foo);
@@ -338,6 +410,11 @@ public class BusTest {
             @Override
             public ThreadMode getThreadMode() {
                 return ThreadMode.MAIN;
+            }
+
+            @Override
+            public Foo getTarget() {
+                return target;
             }
         };
         bus.register(subscription1);

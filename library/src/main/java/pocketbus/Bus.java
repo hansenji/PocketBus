@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import pocketbus.internal.Registry;
 import rx.Observable;
 import rx.Scheduler;
 import rx.android.schedulers.AndroidSchedulers;
@@ -52,7 +53,8 @@ public class Bus {
     private final Object listenerLock = new Object();
     @NonNull
     private final Object stickyLock = new Object();
-
+    @Nullable
+    private Registry registry = null;
 
     private Bus(@NonNull Scheduler mainScheduler, @NonNull Scheduler currentScheduler, @NonNull Scheduler backgroundScheduler, int eventCleanupCount) {
         this.mainScheduler = mainScheduler;
@@ -74,11 +76,27 @@ public class Bus {
         debug = enable;
     }
 
-    public <T> void register(@NonNull Subscription<? super T> subscription) {
+    public void setRegistry(Registry registry) {
+        this.registry = registry;
+    }
+
+    public <T> void register(@NonNull T target) {
+        Registrar registrar = null;
+        if (registry != null) {
+            registrar = registry.getRegistrar(target);
+        }
+        if (registrar != null) {
+            register(registrar);
+        } else {
+            throw new IllegalArgumentException("Failed to find registrar for " + target.getClass() + " please check your registry");
+        }
+    }
+
+    public  <T> void register(@NonNull Subscription<? super T> subscription) {
         register(subscription, true);
     }
 
-    public void register(@NonNull Registrar registrar) {
+    protected void register(@NonNull Registrar registrar) {
         List<Subscription<?>> subscriptions = registrar.getSubscriptions();
         for (Subscription subscription : subscriptions) {
             register(subscription, false);
@@ -122,7 +140,19 @@ public class Bus {
         log("Registered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    public <T> void unregister(@NonNull Subscription<? super T> subscription) {
+    public <T> void unregister(@NonNull T target) {
+        Registrar registrar = null;
+        if (registry != null) {
+            registrar = registry.getRegistrar(target);
+        }
+        if (registrar != null) {
+            unregister(registrar);
+        } else {
+            throw new IllegalArgumentException("Failed to find registrar for " + target.getClass() + " please check your registry");
+        }
+    }
+
+    public  <T> void unregister(@NonNull Subscription<? super T> subscription) {
         Map<Class, List<WeakReference<Subscription>>> listenerMap;
 
         ThreadMode threadMode = subscription.getThreadMode();
@@ -153,7 +183,7 @@ public class Bus {
         log("Unregistered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    public void unregister(@NonNull Registrar registrar) {
+    protected void unregister(@NonNull Registrar registrar) {
         for (Subscription subscription : registrar.getSubscriptions()) {
             unregister(subscription);
         }
@@ -259,7 +289,7 @@ public class Bus {
                 //noinspection unchecked
                 subscription.handle(store.event);
             } else {
-                Observable.just(new SubscriptionStore<>(store.event, subscription, store.threadMode))
+                Observable.just(new SubscriptionStore<>(store.event, null, store.threadMode))
                         .subscribeOn(backgroundScheduler)
                         .subscribe(new Action1<SubscriptionStore<T>>() {
                             @Override
@@ -297,7 +327,7 @@ public class Bus {
         }
     }
 
-    private <T> void unregister(@NonNull Subscription<T> registeredSubscription, @NonNull List<WeakReference<Subscription>> subscriptions) {
+    private <T> void unregister(@Nullable Subscription<T> registeredSubscription, @NonNull List<WeakReference<Subscription>> subscriptions) {
         Iterator<WeakReference<Subscription>> iterator = subscriptions.iterator();
 
         while (iterator.hasNext()) {
@@ -371,10 +401,10 @@ public class Bus {
         final T event;
         @NonNull
         final ThreadMode threadMode;
-        @NonNull
+        @Nullable
         final Subscription subscription;
 
-        public SubscriptionStore(@NonNull T event, @NonNull Subscription subscription, @NonNull ThreadMode threadMode) {
+        public SubscriptionStore(@NonNull T event, @Nullable Subscription subscription, @NonNull ThreadMode threadMode) {
             this.event = event;
             this.threadMode = threadMode;
             this.subscription = subscription;

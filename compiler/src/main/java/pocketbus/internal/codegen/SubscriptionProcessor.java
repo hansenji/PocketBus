@@ -19,6 +19,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 
 import pocketbus.Subscribe;
+import pocketbus.internal.PocketBusConst;
 
 import static javax.tools.Diagnostic.Kind.ERROR;
 import static javax.tools.Diagnostic.Kind.WARNING;
@@ -85,11 +86,11 @@ public class SubscriptionProcessor {
         TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
         String qualifiedName = enclosingElement.getQualifiedName().toString();
 
-        if (qualifiedName.startsWith(pocketbus.internal.codegen.GeneratorConst.ANDROID_PREFIX)) {
+        if (qualifiedName.startsWith(PocketBusConst.ANDROID_PREFIX)) {
             error(String.format("@%s-annotated interface incorrectly in Android framework package. (%s.%s)", Subscribe.class.getSimpleName(), qualifiedName,
                     element.getSimpleName()), element);
         }
-        if (qualifiedName.startsWith(pocketbus.internal.codegen.GeneratorConst.JAVA_PREFIX)) {
+        if (qualifiedName.startsWith(PocketBusConst.JAVA_PREFIX)) {
             error(String.format("@%s-annotated interface incorrectly in Java framework package. (%s.%s)", Subscribe.class.getSimpleName(), qualifiedName,
                     element.getSimpleName()), element);
         }
@@ -123,7 +124,7 @@ public class SubscriptionProcessor {
         if (generator == null) {
             TypeMirror targetType = element.asType();
             String classPackage = getPackageName(element);
-            String className = getClassName(element, classPackage) + pocketbus.internal.codegen.GeneratorConst.REGISTRAR_SUFFIX;
+            String className = getClassName(element, classPackage) + PocketBusConst.REGISTRAR_SUFFIX;
 
             generator = new SubscriptionGenerator(classPackage, className, targetType);
             targetMap.put(element, generator);
