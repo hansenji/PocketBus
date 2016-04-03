@@ -47,7 +47,7 @@ public final class BusProcessor extends AbstractProcessor {
         types = processingEnv.getTypeUtils();
         // Create processors
         subscriptionProcessor = new SubscriptionProcessor(messager, elements);
-        registryProcessor = new RegistryProcessor(messager, elements);
+        registryProcessor = new RegistryProcessor(elements);
     }
 
     @Override

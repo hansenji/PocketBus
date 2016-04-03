@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,6 +15,7 @@ import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
@@ -36,6 +38,8 @@ public class SubscriptionProcessor {
 
     public Map<TypeElement, SubscriptionGenerator> findAndParseTargets(RoundEnvironment roundEnv) {
         LinkedHashMap<TypeElement, SubscriptionGenerator> targetMap = new LinkedHashMap<>();
+        Set<String> erasedTargetNames = new LinkedHashSet<>(); // used for parent lookup.
+
         Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(Subscribe.class);
         for (Element element : elements) {
             TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
@@ -64,7 +68,16 @@ public class SubscriptionProcessor {
                         Subscribe.class.getSimpleName(), method.getEventType(), method.getThreadMode(), enclosingElement.getQualifiedName(),
                         element.getSimpleName()), element);
             }
+            erasedTargetNames.add(enclosingElement.toString());
         }
+
+        for (Map.Entry<TypeElement, SubscriptionGenerator> entry : targetMap.entrySet()) {
+            TypeElement parentElement = findParent(entry.getKey(), erasedTargetNames);
+            if (parentElement != null) {
+                entry.getValue().setParentAdapter(getPackageName(parentElement), parentElement.getSimpleName() + PocketBusConst.REGISTRAR_SUFFIX);
+            }
+        }
+
         return targetMap;
     }
 
@@ -143,5 +156,19 @@ public class SubscriptionProcessor {
 
     private void error(String message, Element element) {
         messager.printMessage(ERROR, message, element);
+    }
+
+    private TypeElement findParent(TypeElement typeElement, Set<String> parents) {
+        TypeMirror type;
+        while (true) {
+            type = typeElement.getSuperclass();
+            if (type.getKind() == TypeKind.NONE) {
+                return null;
+            }
+            typeElement = (TypeElement) ((DeclaredType) type).asElement();
+            if (parents.contains(typeElement.toString())) {
+                return typeElement;
+            }
+        }
     }
 }

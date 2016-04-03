@@ -34,6 +34,7 @@ public class SubscriptionGenerator {
     private final String classPackage;
     private final String className;
     private final TypeMirror targetType;
+    private ClassName parentAdapter;
     private int idx = 1;
 
     public SubscriptionGenerator(String classPackage, String className, TypeMirror targetType) {
@@ -50,9 +51,14 @@ public class SubscriptionGenerator {
     public JavaFile generate() {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.PUBLIC)
-                .addSuperinterface(ClassName.get(Registrar.class))
                 .addField(TypeName.get(targetType), PocketBusConst.VAR_TARGET, Modifier.PRIVATE, Modifier.FINAL)
                 .addField(LIST_TYPE, PocketBusConst.VAR_SUBSCRIPTIONS, Modifier.PRIVATE, Modifier.FINAL);
+
+        if (parentAdapter != null) {
+            classBuilder.superclass(parentAdapter);
+        } else {
+            classBuilder.addSuperinterface(ClassName.get(Registrar.class));
+        }
 
         generateConstructor(classBuilder);
         generateSubscriptions(classBuilder);
@@ -61,13 +67,34 @@ public class SubscriptionGenerator {
         return JavaFile.builder(classPackage, classBuilder.build()).build();
     }
 
+    public void setParentAdapter(String packageName, String className) {
+        this.parentAdapter = ClassName.get(packageName, className);
+    }
+
+    public String getParentAdapterName() {
+        return parentAdapter != null ? parentAdapter.toString() : null;
+    }
+
+    public String getAdapterName() {
+        return ClassName.get(classPackage, className).toString();
+    }
+
     private void generateConstructor(TypeSpec.Builder classBuilder) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(TypeName.get(targetType), PocketBusConst.VAR_TARGET)
-                .addStatement("this.$N = $N", PocketBusConst.VAR_TARGET, PocketBusConst.VAR_TARGET)
+                .addParameter(TypeName.get(targetType), PocketBusConst.VAR_TARGET);
+
+        if (parentAdapter != null) {
+            builder.addStatement("super($N)", PocketBusConst.VAR_TARGET);
+        }
+
+        builder.addStatement("this.$N = $N", PocketBusConst.VAR_TARGET, PocketBusConst.VAR_TARGET)
                 .addStatement("$T $N = new $T()", LIST_TYPE, PocketBusConst.VAR_SUBSCRIPTIONS, ParameterizedTypeName.get(ClassName.get(ArrayList.class),
                         ParameterizedTypeName.get(ClassName.get(Subscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT))));
+
+        if (parentAdapter != null) {
+            builder.addStatement("$N.addAll(super.$L())", PocketBusConst.VAR_SUBSCRIPTIONS, PocketBusConst.METHOD_GET_SUBSCRIPTIONS);
+        }
 
         for (SubscriptionMethod method : methods) {
             builder.addStatement("$N.add($N)", PocketBusConst.VAR_SUBSCRIPTIONS, PocketBusConst.VAR_SUBSCRIPTION + method.getIndex());

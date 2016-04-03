@@ -6,8 +6,7 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeVariableName;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -18,18 +17,13 @@ import pocketbus.internal.PocketBusConst;
 import pocketbus.internal.Registry;
 
 public class RegistryGenerator {
-    private final Set<TypeMirror> targetTypes = new LinkedHashSet<>();
-
     private final String packageName;
     private final TypeElement typeElement;
+    private List<SubscriptionNode> subscriptionTrees;
 
     public RegistryGenerator(TypeElement typeElement, String packageName) {
         this.typeElement = typeElement;
         this.packageName = packageName;
-    }
-
-    public boolean addTargetType(TypeMirror targetType) {
-        return this.targetTypes.add(targetType);
     }
 
     public JavaFile generate() {
@@ -52,15 +46,8 @@ public class RegistryGenerator {
                 .returns(Registrar.class);
 
         boolean first = true;
-        for (TypeMirror targetType : targetTypes) {
-            if (first) {
-                first = false;
-                methodBuilder.beginControlFlow("if ($N instanceof $T)", PocketBusConst.VAR_TARGET, targetType);
-            } else {
-                methodBuilder.nextControlFlow("else if ($N instanceof $T)", PocketBusConst.VAR_TARGET, targetType);
-            }
-            ClassName registrarClass = ClassName.bestGuess(targetType + PocketBusConst.REGISTRAR_SUFFIX);
-            methodBuilder.addStatement("return new $T(($T)$N)", registrarClass, targetType, PocketBusConst.VAR_TARGET);
+        for (SubscriptionNode node : subscriptionTrees) {
+            first = writeRegistrars(methodBuilder, node, first);
         }
         if (!first) {
             methodBuilder.endControlFlow();
@@ -70,7 +57,35 @@ public class RegistryGenerator {
         classBuilder.addMethod(methodBuilder.build());
     }
 
+    /**
+     *
+     *
+     * @param methodBuilder
+     * @param node
+     * @param first first element in this tree
+     * @return whether first was consumed
+     */
+    private boolean writeRegistrars(MethodSpec.Builder methodBuilder, SubscriptionNode node, boolean first) {
+        boolean useIf = first;
+        for (SubscriptionNode child : node.getChildren()) {
+            useIf = writeRegistrars(methodBuilder, child, useIf);
+        }
+        TypeMirror targetType = node.getTypeMirror();
+        if (useIf) {
+            methodBuilder.beginControlFlow("if ($N instanceof $T)", PocketBusConst.VAR_TARGET, targetType);
+        } else {
+            methodBuilder.nextControlFlow("else if ($N instanceof $T)", PocketBusConst.VAR_TARGET, targetType);
+        }
+        ClassName registrarClass = ClassName.bestGuess(targetType + PocketBusConst.REGISTRAR_SUFFIX);
+        methodBuilder.addStatement("return new $T(($T)$N)", registrarClass, targetType, PocketBusConst.VAR_TARGET);
+        return false;
+    }
+
     public TypeElement getTypeElement() {
         return typeElement;
+    }
+
+    public void setSubscriptionTrees(List<SubscriptionNode> subscriptionTrees) {
+        this.subscriptionTrees = subscriptionTrees;
     }
 }

@@ -7,6 +7,7 @@ import org.robolectric.annotation.Config;
 
 import pocketbus.BuildConfig;
 import pocketbus.Bus;
+import pocketbus.sample.BusRegistry;
 import pocketbus.sample.SingleSubscription;
 import rx.schedulers.Schedulers;
 
@@ -20,6 +21,7 @@ public class SingleSubscriptionTest implements SingleSubscription.Callback {
     @Test
     public void test() throws Exception {
         Bus bus = new Bus.Builder().setCurrentScheduler(Schedulers.immediate()).build();
+        bus.setRegistry(new BusRegistry());
         Bus.setDefault(bus);
         SingleSubscription singleSubscription = new SingleSubscription(this);
         bus.post(1);
