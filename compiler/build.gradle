@@ -23,7 +23,7 @@ uploadArchives {
             repository (url: "file://${System.env.HOME}/.m2/repository/")
             pom.groupId = libraryGroupId
             pom.artifactId = libraryBaseName
-            pom.version = libraryVersion + "-SNAPSHOT"
+            pom.version = libraryVersion
             pom.packaging = 'aar'
             uniqueVersion = false // don't put in a timestamp on the filename (other project will not be able to depend on it)
             pom.whenConfigured {pom ->

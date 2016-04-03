@@ -18,7 +18,7 @@ import java.util.Set;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 
-import pocketbus.Registrar;
+import pocketbus.SubscriptionRegistration;
 import pocketbus.Subscription;
 import pocketbus.ThreadMode;
 import pocketbus.internal.PocketBusConst;
@@ -57,7 +57,7 @@ public class SubscriptionGenerator {
         if (parentAdapter != null) {
             classBuilder.superclass(parentAdapter);
         } else {
-            classBuilder.addSuperinterface(ClassName.get(Registrar.class));
+            classBuilder.addSuperinterface(ClassName.get(SubscriptionRegistration.class));
         }
 
         generateConstructor(classBuilder);

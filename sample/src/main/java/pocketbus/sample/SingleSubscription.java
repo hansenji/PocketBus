@@ -2,14 +2,16 @@ package pocketbus.sample;
 
 import pocketbus.Bus;
 import pocketbus.Subscribe;
+import pocketbus.SubscriptionRegistration;
 
 public class SingleSubscription {
 
     private final Callback callback;
+    private final SubscriptionRegistration registration;
 
     public SingleSubscription(Callback callback) {
         this.callback = callback;
-        Bus.getDefault().register(this);
+        registration = Bus.getDefault().register(this);
     }
 
     @Subscribe
@@ -18,7 +20,7 @@ public class SingleSubscription {
     }
 
     public void unregister() {
-        Bus.getDefault().unregister(this);
+        Bus.getDefault().unregister(registration);
     }
 
     public interface Callback {

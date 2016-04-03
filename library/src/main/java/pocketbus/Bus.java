@@ -80,24 +80,25 @@ public class Bus {
         this.registry = registry;
     }
 
-    public <T> void register(@NonNull T target) {
-        Registrar registrar = null;
+    public <T> SubscriptionRegistration register(@NonNull T target) {
+        SubscriptionRegistration subscriptionRegistration = null;
         if (registry != null) {
-            registrar = registry.getRegistrar(target);
+            subscriptionRegistration = registry.getRegistrar(target);
         }
-        if (registrar != null) {
-            register(registrar);
+        if (subscriptionRegistration != null) {
+            register(subscriptionRegistration);
+            return subscriptionRegistration;
         } else {
-            throw new IllegalArgumentException("Failed to find registrar for " + target.getClass() + " please check your registry");
+            throw new IllegalArgumentException("Failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
         }
     }
 
-    public  <T> void register(@NonNull Subscription<? super T> subscription) {
+    public <T> void register(@NonNull Subscription<? super T> subscription) {
         register(subscription, true);
     }
 
-    protected void register(@NonNull Registrar registrar) {
-        List<Subscription<?>> subscriptions = registrar.getSubscriptions();
+    protected void register(@NonNull SubscriptionRegistration subscriptionRegistration) {
+        List<Subscription<?>> subscriptions = subscriptionRegistration.getSubscriptions();
         for (Subscription subscription : subscriptions) {
             register(subscription, false);
         }
@@ -140,18 +141,6 @@ public class Bus {
         log("Registered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    public <T> void unregister(@NonNull T target) {
-        Registrar registrar = null;
-        if (registry != null) {
-            registrar = registry.getRegistrar(target);
-        }
-        if (registrar != null) {
-            unregister(registrar);
-        } else {
-            throw new IllegalArgumentException("Failed to find registrar for " + target.getClass() + " please check your registry");
-        }
-    }
-
     public  <T> void unregister(@NonNull Subscription<? super T> subscription) {
         Map<Class, List<WeakReference<Subscription>>> listenerMap;
 
@@ -183,8 +172,8 @@ public class Bus {
         log("Unregistered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    protected void unregister(@NonNull Registrar registrar) {
-        for (Subscription subscription : registrar.getSubscriptions()) {
+    public void unregister(@NonNull SubscriptionRegistration subscriptionRegistration) {
+        for (Subscription subscription : subscriptionRegistration.getSubscriptions()) {
             unregister(subscription);
         }
     }

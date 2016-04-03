@@ -4,7 +4,7 @@ public class PocketBusConst {
     public static final String ANDROID_PREFIX = "android.";
     public static final String JAVA_PREFIX = "java.";
 
-    public static final String REGISTRAR_SUFFIX = "Registrar";
+    public static final String REGISTRATION_SUFFIX = "SubscriptionRegistration";
     public static final String REGISTRY_NAME = "BusRegistry";
 
     public static final String METHOD_HANDLE = "handle";

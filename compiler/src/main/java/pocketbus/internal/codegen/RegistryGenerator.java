@@ -12,7 +12,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
-import pocketbus.Registrar;
+import pocketbus.SubscriptionRegistration;
 import pocketbus.internal.PocketBusConst;
 import pocketbus.internal.Registry;
 
@@ -43,7 +43,7 @@ public class RegistryGenerator {
                 .addAnnotation(Override.class)
                 .addTypeVariable(t)
                 .addParameter(t, PocketBusConst.VAR_TARGET)
-                .returns(Registrar.class);
+                .returns(SubscriptionRegistration.class);
 
         boolean first = true;
         for (SubscriptionNode node : subscriptionTrees) {
@@ -76,7 +76,7 @@ public class RegistryGenerator {
         } else {
             methodBuilder.nextControlFlow("else if ($N instanceof $T)", PocketBusConst.VAR_TARGET, targetType);
         }
-        ClassName registrarClass = ClassName.bestGuess(targetType + PocketBusConst.REGISTRAR_SUFFIX);
+        ClassName registrarClass = ClassName.bestGuess(targetType + PocketBusConst.REGISTRATION_SUFFIX);
         methodBuilder.addStatement("return new $T(($T)$N)", registrarClass, targetType, PocketBusConst.VAR_TARGET);
         return false;
     }

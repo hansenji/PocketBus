@@ -2,14 +2,16 @@ package pocketbus.sample.inheritance;
 
 import pocketbus.Bus;
 import pocketbus.Subscribe;
+import pocketbus.SubscriptionRegistration;
 
 public class ParentB {
 
     protected final Callback callback;
+    private final SubscriptionRegistration registration;
 
     public ParentB(Callback callback) {
         this.callback = callback;
-        Bus.getDefault().register(this);
+        registration = Bus.getDefault().register(this);
     }
 
     @Subscribe
@@ -18,7 +20,7 @@ public class ParentB {
     }
 
     public void unregister() {
-        Bus.getDefault().unregister(this);
+        Bus.getDefault().unregister(registration);
     }
 
     public interface Callback {

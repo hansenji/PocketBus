@@ -1,7 +1,7 @@
 package pocketbus.internal;
 
-import pocketbus.Registrar;
+import pocketbus.SubscriptionRegistration;
 
 public interface Registry {
-    <T> Registrar getRegistrar(T target);
+    <T> SubscriptionRegistration getRegistrar(T target);
 }

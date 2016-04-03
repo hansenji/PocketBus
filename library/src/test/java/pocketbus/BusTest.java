@@ -209,20 +209,20 @@ public class BusTest {
         String uid = UUID.randomUUID().toString();
         setTestUid(uid);
 
-        Registrar registrar = new Registrar() {
+        SubscriptionRegistration subscriptionRegistration = new SubscriptionRegistration() {
             @Override
             public List<Subscription<?>> getSubscriptions() {
                 return Collections.unmodifiableList(Arrays.<Subscription<?>>asList(subscriptionMain, subscriptionBackground, subscriptionCurrent));
             }
         };
 
-        bus.register(registrar);
+        bus.register(subscriptionRegistration);
 
         bus.post(new Foo(uid));
         bus.post(1);
         setTestUid(null);
 
-        bus.unregister(registrar);
+        bus.unregister(subscriptionRegistration);
 
         bus.post(new Foo("FAIL"));
         assertEquals(3, eventCount);

@@ -74,7 +74,7 @@ public class SubscriptionProcessor {
         for (Map.Entry<TypeElement, SubscriptionGenerator> entry : targetMap.entrySet()) {
             TypeElement parentElement = findParent(entry.getKey(), erasedTargetNames);
             if (parentElement != null) {
-                entry.getValue().setParentAdapter(getPackageName(parentElement), parentElement.getSimpleName() + PocketBusConst.REGISTRAR_SUFFIX);
+                entry.getValue().setParentAdapter(getPackageName(parentElement), parentElement.getSimpleName() + PocketBusConst.REGISTRATION_SUFFIX);
             }
         }
 
@@ -137,7 +137,7 @@ public class SubscriptionProcessor {
         if (generator == null) {
             TypeMirror targetType = element.asType();
             String classPackage = getPackageName(element);
-            String className = getClassName(element, classPackage) + PocketBusConst.REGISTRAR_SUFFIX;
+            String className = getClassName(element, classPackage) + PocketBusConst.REGISTRATION_SUFFIX;
 
             generator = new SubscriptionGenerator(classPackage, className, targetType);
             targetMap.put(element, generator);
