@@ -87,7 +87,7 @@ public class Bus {
         if (subscriptionRegistration != null) {
             register(subscriptionRegistration);
         } else {
-            throw new IllegalArgumentException("Failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
+            throw new IllegalArgumentException("Register failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
         }
     }
 
@@ -178,11 +178,11 @@ public class Bus {
         if (subscriptionRegistration != null) {
             unregister(subscriptionRegistration);
         } else {
-            throw new IllegalArgumentException("Failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
+            throw new IllegalArgumentException("Unregister failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
         }
     }
 
-    private void unregister(@NonNull SubscriptionRegistration subscriptionRegistration) {
+    protected void unregister(@NonNull SubscriptionRegistration subscriptionRegistration) {
         for (Subscription subscription : subscriptionRegistration.getSubscriptions()) {
             unregister(subscription);
         }

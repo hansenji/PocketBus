@@ -29,6 +29,6 @@ dependencies {
     apt project(':compiler')
 
     testCompile 'junit:junit:4.12'
-    testCompile 'org.robolectric:robolectric:3.1-SNAPSHOT'
+    testCompile 'org.robolectric:robolectric:3.1-rc1'
     testCompile 'org.mockito:mockito-core:2.0.41-beta'
 }
