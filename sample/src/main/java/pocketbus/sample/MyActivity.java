@@ -16,7 +16,6 @@ import java.util.Locale;
 
 import pocketbus.Bus;
 import pocketbus.Subscribe;
-import pocketbus.SubscriptionRegistration;
 import pocketbus.ThreadMode;
 
 public class MyActivity extends Activity {
@@ -32,7 +31,6 @@ public class MyActivity extends Activity {
     private TextView textView;
     private ScrollView scrollView;
     private Integer lastEventId = 0;
-    private SubscriptionRegistration registration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,13 +75,12 @@ public class MyActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        registration = bus.register(this);
+        bus.register(this);
     }
 
     @Override
     protected void onStop() {
-        bus.unregister(registration);
-        registration = null;
+        bus.unregister(this);
         bus.post(-1);
         super.onStop();
     }

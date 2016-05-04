@@ -4,7 +4,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -41,11 +40,11 @@ public class Bus {
     private final AtomicInteger eventCounter = new AtomicInteger();
 
     @NonNull
-    private final Map<Class, List<WeakReference<Subscription>>> mainThreadListeners = new LinkedHashMap<>();
+    private final Map<Class, List<Subscription>> mainThreadListeners = new LinkedHashMap<>();
     @NonNull
-    private final Map<Class, List<WeakReference<Subscription>>> backgroundThreadListeners = new LinkedHashMap<>();
+    private final Map<Class, List<Subscription>> backgroundThreadListeners = new LinkedHashMap<>();
     @NonNull
-    private final Map<Class, List<WeakReference<Subscription>>> currentThreadListeners = new LinkedHashMap<>();
+    private final Map<Class, List<Subscription>> currentThreadListeners = new LinkedHashMap<>();
 
     @NonNull
     private final Map<Class<?>, ? super Object> stickyEvents = new LinkedHashMap<>();
@@ -76,18 +75,17 @@ public class Bus {
         debug = enable;
     }
 
-    public void setRegistry(Registry registry) {
+    public void setRegistry(@Nullable Registry registry) {
         this.registry = registry;
     }
 
-    public <T> SubscriptionRegistration register(@NonNull T target) {
+    public <T> void register(@NonNull T target) {
         SubscriptionRegistration subscriptionRegistration = null;
         if (registry != null) {
             subscriptionRegistration = registry.getRegistrar(target);
         }
         if (subscriptionRegistration != null) {
             register(subscriptionRegistration);
-            return subscriptionRegistration;
         } else {
             throw new IllegalArgumentException("Failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
         }
@@ -108,7 +106,7 @@ public class Bus {
     }
 
     private <T> void register(@NonNull Subscription<? super T> subscription, boolean postStickyEvents) {
-        Map<Class, List<WeakReference<Subscription>>> listenerMap;
+        Map<Class, List<Subscription>> listenerMap;
         ThreadMode threadMode = subscription.getThreadMode();
         switch (threadMode) {
             case MAIN:
@@ -130,10 +128,10 @@ public class Bus {
         }
         synchronized (listenerLock) {
             if (!listenerMap.containsKey(eventClass)) {
-                listenerMap.put(eventClass, new LinkedList<WeakReference<Subscription>>());
+                listenerMap.put(eventClass, new LinkedList<Subscription>());
             }
 
-            listenerMap.get(eventClass).add(new WeakReference<Subscription>(subscription));
+            listenerMap.get(eventClass).add(subscription);
             if (postStickyEvents) {
                 postStickyOnRegistration(subscription);
             }
@@ -141,8 +139,8 @@ public class Bus {
         log("Registered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    public  <T> void unregister(@NonNull Subscription<? super T> subscription) {
-        Map<Class, List<WeakReference<Subscription>>> listenerMap;
+    public <T> void unregister(@NonNull Subscription<? super T> subscription) {
+        Map<Class, List<Subscription>> listenerMap;
 
         ThreadMode threadMode = subscription.getThreadMode();
         switch (threadMode) {
@@ -164,7 +162,7 @@ public class Bus {
             throw new NullPointerException("Subscription.getEventClass() cannot be null");
         }
         synchronized (listenerLock) {
-            List<WeakReference<Subscription>> subscriptions = listenerMap.get(eventClass);
+            List<Subscription> subscriptions = listenerMap.get(eventClass);
             if (subscriptions != null) {
                 unregister(subscription, subscriptions);
             }
@@ -172,7 +170,19 @@ public class Bus {
         log("Unregistered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
-    public void unregister(@NonNull SubscriptionRegistration subscriptionRegistration) {
+    public <T> void unregister(@NonNull T target) {
+        SubscriptionRegistration subscriptionRegistration = null;
+        if (registry != null) {
+            subscriptionRegistration = registry.getRegistrar(target);
+        }
+        if (subscriptionRegistration != null) {
+            unregister(subscriptionRegistration);
+        } else {
+            throw new IllegalArgumentException("Failed to find subscriptionRegistration for " + target.getClass() + " please check your registry");
+        }
+    }
+
+    private void unregister(@NonNull SubscriptionRegistration subscriptionRegistration) {
         for (Subscription subscription : subscriptionRegistration.getSubscriptions()) {
             unregister(subscription);
         }
@@ -183,15 +193,15 @@ public class Bus {
             throw new NullPointerException("Event cannot be null");
         }
         synchronized (listenerLock) {
-            for (Map.Entry<Class, List<WeakReference<Subscription>>> entry : currentThreadListeners.entrySet()) {
+            for (Map.Entry<Class, List<Subscription>> entry : currentThreadListeners.entrySet()) {
                 checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.CURRENT);
             }
 
-            for (Map.Entry<Class, List<WeakReference<Subscription>>> entry : mainThreadListeners.entrySet()) {
+            for (Map.Entry<Class, List<Subscription>> entry : mainThreadListeners.entrySet()) {
                 checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.MAIN);
             }
 
-            for (Map.Entry<Class, List<WeakReference<Subscription>>> entry : backgroundThreadListeners.entrySet()) {
+            for (Map.Entry<Class, List<Subscription>> entry : backgroundThreadListeners.entrySet()) {
                 checkAndPost(entry.getKey(), event, entry.getValue(), ThreadMode.BACKGROUND);
             }
         }
@@ -205,13 +215,13 @@ public class Bus {
                     .subscribe(new Action1<Integer>() {
                         @Override
                         public void call(Integer integer) {
-                            cleanupWeakReferences();
+                            cleanupReferences();
                         }
                     });
         }
     }
 
-    private <T> void checkAndPost(@NonNull Class subscriptionClazz, @NonNull T event, @NonNull List<WeakReference<Subscription>> subscriptions,
+    private <T> void checkAndPost(@NonNull Class subscriptionClazz, @NonNull T event, @NonNull List<Subscription> subscriptions,
                                   @NonNull ThreadMode threadMode) {
         if (subscriptionClazz.isInstance(event)) {
             post(event, subscriptions, threadMode);
@@ -253,14 +263,14 @@ public class Bus {
             for (Map.Entry<Class<?>, ? super Object> entry : stickyEvents.entrySet()) {
                 Class<?> stickyClass = entry.getKey();
                 if (eventClass.isAssignableFrom(stickyClass)) {
-                    post(entry.getValue(), Collections.singletonList(new WeakReference<Subscription>(subscription)), threadMode);
+                    post(entry.getValue(), Collections.singletonList((Subscription)subscription), threadMode);
                     log("Sticky Event<" + stickyClass + "> posted to Subscription<" + eventClass + "> on ThreadMode." + threadMode);
                 }
             }
         }
     }
 
-    private <T> void post(@NonNull T event, @NonNull List<WeakReference<Subscription>> subscriptions, @NonNull ThreadMode threadMode) {
+    private <T> void post(@NonNull T event, @NonNull List<Subscription> subscriptions, @NonNull ThreadMode threadMode) {
         Observable.just(new SubscriptionsStore<>(event, new ArrayList<>(subscriptions), threadMode))
                 .subscribeOn(getScheduler(threadMode))
                 .subscribe(new Action1<SubscriptionsStore<T>>() {
@@ -272,12 +282,9 @@ public class Bus {
     }
 
     private <T> void performPost(@NonNull SubscriptionsStore<T> store) {
-        for (WeakReference<Subscription> subscriptionRef : store.subscriptions) {
-            Subscription subscription = subscriptionRef.get();
-            if (subscription != null) {
-                //noinspection unchecked
-                subscription.handle(store.event);
-            } else {
+        for (Subscription subscription : store.subscriptions) {
+            //noinspection unchecked
+            if (!subscription.handle(store.event)) {
                 Observable.just(new SubscriptionStore<>(store.event, null, store.threadMode))
                         .subscribeOn(backgroundScheduler)
                         .subscribe(new Action1<SubscriptionStore<T>>() {
@@ -291,7 +298,7 @@ public class Bus {
     }
 
     private <T> void unregister(@NonNull SubscriptionStore<T> store) {
-        Map<Class, List<WeakReference<Subscription>>> listenerMap;
+        Map<Class, List<Subscription>> listenerMap;
 
         switch (store.threadMode) {
             case MAIN:
@@ -308,7 +315,7 @@ public class Bus {
         }
 
         synchronized (listenerLock) {
-            for (Map.Entry<Class, List<WeakReference<Subscription>>> entry : listenerMap.entrySet()) {
+            for (Map.Entry<Class, List<Subscription>> entry : listenerMap.entrySet()) {
                 if (entry.getKey().isInstance(store.event)) {
                     unregister(store.subscription, entry.getValue());
                 }
@@ -316,12 +323,12 @@ public class Bus {
         }
     }
 
-    private <T> void unregister(@Nullable Subscription<T> registeredSubscription, @NonNull List<WeakReference<Subscription>> subscriptions) {
-        Iterator<WeakReference<Subscription>> iterator = subscriptions.iterator();
+    private <T> void unregister(@Nullable Subscription<T> registeredSubscription, @NonNull List<Subscription> subscriptions) {
+        Iterator<Subscription> iterator = subscriptions.iterator();
 
         while (iterator.hasNext()) {
-            Subscription subscription = iterator.next().get();
-            if (subscription == null || subscription.equals(registeredSubscription)) {
+            Subscription subscription = iterator.next();
+            if (subscription.getTarget() == null || subscription.equals(registeredSubscription)) {
                 iterator.remove();
             }
         }
@@ -341,27 +348,27 @@ public class Bus {
         }
     }
 
-    private void cleanupWeakReferences() {
+    private void cleanupReferences() {
         synchronized (listenerLock) {
-            cleanupWeakReferences(mainThreadListeners, ThreadMode.MAIN);
-            cleanupWeakReferences(backgroundThreadListeners, ThreadMode.BACKGROUND);
-            cleanupWeakReferences(currentThreadListeners, ThreadMode.CURRENT);
+            cleanupReferences(mainThreadListeners, ThreadMode.MAIN);
+            cleanupReferences(backgroundThreadListeners, ThreadMode.BACKGROUND);
+            cleanupReferences(currentThreadListeners, ThreadMode.CURRENT);
         }
     }
 
-    private void cleanupWeakReferences(@NonNull Map<Class, List<WeakReference<Subscription>>> listeners, @NonNull ThreadMode threadMode) {
+    private void cleanupReferences(@NonNull Map<Class, List<Subscription>> listeners, @NonNull ThreadMode threadMode) {
         int cleanupCount = 0;
-        for (List<WeakReference<Subscription>> weakReferences : listeners.values()) {
-            Iterator<WeakReference<Subscription>> iterator = weakReferences.iterator();
+        for (List<Subscription> references : listeners.values()) {
+            Iterator<Subscription> iterator = references.iterator();
             while (iterator.hasNext()) {
-                Subscription subscription = iterator.next().get();
-                if (subscription == null) {
+                Subscription subscription = iterator.next();
+                if (subscription.getTarget() == null) {
                     iterator.remove();
                     cleanupCount++;
                 }
             }
         }
-        log("cleanupWeakReferences: " + cleanupCount + " for ThreadMode." + threadMode);
+        log("cleanupReferences: " + cleanupCount + " for ThreadMode." + threadMode);
     }
 
     private void log(@NonNull String msg) {
@@ -376,9 +383,9 @@ public class Bus {
         @NonNull
         final ThreadMode threadMode;
         @NonNull
-        final List<WeakReference<Subscription>> subscriptions;
+        final List<Subscription> subscriptions;
 
-        public SubscriptionsStore(@NonNull T event, @NonNull List<WeakReference<Subscription>> subscriptions, @NonNull ThreadMode threadMode) {
+        public SubscriptionsStore(@NonNull T event, @NonNull List<Subscription> subscriptions, @NonNull ThreadMode threadMode) {
             this.event = event;
             this.threadMode = threadMode;
             this.subscriptions = subscriptions;

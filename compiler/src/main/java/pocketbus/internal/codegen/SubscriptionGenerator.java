@@ -9,6 +9,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.WildcardTypeName;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -51,7 +52,7 @@ public class SubscriptionGenerator {
     public JavaFile generate() {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(className)
                 .addModifiers(Modifier.PUBLIC)
-                .addField(TypeName.get(targetType), PocketBusConst.VAR_TARGET, Modifier.PRIVATE, Modifier.FINAL)
+                .addField(getWeakReferenceType(), PocketBusConst.VAR_TARGET_REF, Modifier.PRIVATE, Modifier.FINAL)
                 .addField(LIST_TYPE, PocketBusConst.VAR_SUBSCRIPTIONS, Modifier.PRIVATE, Modifier.FINAL);
 
         if (parentAdapter != null) {
@@ -88,7 +89,7 @@ public class SubscriptionGenerator {
             builder.addStatement("super($N)", PocketBusConst.VAR_TARGET);
         }
 
-        builder.addStatement("this.$N = $N", PocketBusConst.VAR_TARGET, PocketBusConst.VAR_TARGET)
+        builder.addStatement("this.$N = new $T($N)", PocketBusConst.VAR_TARGET_REF, getWeakReferenceType(), PocketBusConst.VAR_TARGET)
                 .addStatement("$T $N = new $T()", LIST_TYPE, PocketBusConst.VAR_SUBSCRIPTIONS, ParameterizedTypeName.get(ClassName.get(ArrayList.class),
                         ParameterizedTypeName.get(ClassName.get(Subscription.class), WildcardTypeName.subtypeOf(TypeName.OBJECT))));
 
@@ -147,7 +148,13 @@ public class SubscriptionGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .addParameter(TypeName.get(subscriptionMethod.getEventType()), PocketBusConst.VAR_EVENT)
-                .addStatement("$N.$L($N)", PocketBusConst.VAR_TARGET, subscriptionMethod.getName(), PocketBusConst.VAR_EVENT);
+                .returns(TypeName.BOOLEAN)
+                .addStatement("$T $N = $N.get()", TypeName.get(targetType), PocketBusConst.VAR_TARGET, PocketBusConst.VAR_TARGET_REF)
+                .beginControlFlow("if ($N != null)", PocketBusConst.VAR_TARGET)
+                .addStatement("$N.$L($N)", PocketBusConst.VAR_TARGET, subscriptionMethod.getName(), PocketBusConst.VAR_EVENT)
+                .endControlFlow()
+                .addStatement("return $N != null", PocketBusConst.VAR_TARGET)
+                ;
 
         classBuilder.addMethod(methodBuilder.build());
     }
@@ -177,7 +184,7 @@ public class SubscriptionGenerator {
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(Override.class)
                 .returns(TypeName.get(targetType))
-                .addStatement("return $N", PocketBusConst.VAR_TARGET);
+                .addStatement("return $N.get()", PocketBusConst.VAR_TARGET_REF);
 
         classBuilder.addMethod(methodBuilder.build());
     }
@@ -189,10 +196,14 @@ public class SubscriptionGenerator {
                 .addParameter(TypeName.OBJECT, PocketBusConst.VAR_O)
                 .returns(TypeName.BOOLEAN)
                 .beginControlFlow("if ($N instanceof $T)", PocketBusConst.VAR_O, SUBSCRIPTION_TYPE)
-                .addStatement("return this.getTarget().equals((($T)$N).getTarget())", SUBSCRIPTION_TYPE, PocketBusConst.VAR_O)
+                .addStatement("return this.getTarget() != null && this.getTarget().equals((($T)$N).getTarget())", SUBSCRIPTION_TYPE, PocketBusConst.VAR_O)
                 .endControlFlow()
                 .addStatement("return false");
 
         classBuilder.addMethod(methodBuilder.build());
+    }
+
+    private TypeName getWeakReferenceType() {
+        return ParameterizedTypeName.get(ClassName.get(WeakReference.class), TypeName.get(targetType));
     }
 }

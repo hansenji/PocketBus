@@ -15,6 +15,7 @@ public class PocketBusConst {
     public static final String METHOD_EQUALS = "equals";
     public static final String METHOD_GET_REGISTRAR = "getRegistrar";
 
+    public static final String VAR_TARGET_REF = "targetRef";
     public static final String VAR_TARGET = "target";
     public static final String VAR_EVENT = "event";
     public static final String VAR_SUBSCRIPTION = "subscription";
