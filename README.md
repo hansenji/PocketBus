@@ -1,5 +1,52 @@
 # PocketBus
-Rx based event bus that doesn't leak memory
+Rx based event bus for Android that doesn't leak memory or use reflection
+
+## Usage
+Annotate methods with `@Subscribe`
+```java
+@Subscribe
+public void handle(FooEvent event) {
+  // Some code
+}
+```
+
+Get a singleton instance of the bus and register the class containing subscriptions in `onStart()`
+```java
+public void onStart() {
+  Bus.getDefault().register(this);
+}
+```
+
+Post events to the bus by getting the singleton instance and calling
+```java
+Bus.getDefault().post(new FooEvent());
+```
+PocketBus will deliver that event to all subscriptions currentlty registered with that bus.
+
+Unsubscribe from the bus in `onStop()`
+```java
+public void onStop() {
+  Bus.getDefault().unregister(this);
+}
+```
+
+## Special Features
+```Java
+@Subscribe(ThreadMode.CURRENT) // Runs on the same thread that posted the event asynchronous (default)
+@Subscribe(ThreadMode.MAIN) // Runs on the UI thread asynchronous
+@Subscribe(ThreadMode.BACKGROUND) // Runs on a background thread asynchronous
+```
+
+```java
+bus.postSticky(new FooEvent()) // Saves the event of that type delivers it to a subscription on registration
+```
+
+## Download
+Via gradle from *jcenter*
+```
+compile 'com.vikingsen:pocketbus:0.5.0'
+provided 'com.vikingsen:pocketbus-compiler:0.5.0'
+```
 
 License
 -------
