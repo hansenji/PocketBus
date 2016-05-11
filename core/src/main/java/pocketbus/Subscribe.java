@@ -8,5 +8,8 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.METHOD)
 public @interface Subscribe {
+    /**
+     * ThreadMode the subscription is run on
+     */
     ThreadMode value() default ThreadMode.CURRENT;
 }

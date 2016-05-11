@@ -1,6 +1,25 @@
 # PocketBus
 Rx based event bus for Android that doesn't leak memory or use reflection
 
+## Setup
+Annotate `Application` class with `@Registry`
+```java
+@Registry
+public class App extends Application {
+  // ...
+}
+```
+
+Run the build to generate the `BusRegistry`
+Get a singleton instance of the bus and set the registry (usually in `App.onCreate()`)
+```java
+public void onCreate() {
+  super.onCreate();
+  Bus.getDefault().setRegistry(new BusRegistry());
+  // ...
+}
+```
+
 ## Usage
 Annotate methods with `@Subscribe`
 ```java

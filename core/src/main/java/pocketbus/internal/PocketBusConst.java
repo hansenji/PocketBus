@@ -13,7 +13,7 @@ public class PocketBusConst {
     public static final String METHOD_GET_THREAD_MODE = "getThreadMode";
     public static final String METHOD_GET_TARGET = "getTarget";
     public static final String METHOD_EQUALS = "equals";
-    public static final String METHOD_GET_REGISTRAR = "getRegistrar";
+    public static final String METHOD_GET_REGISTRAR = "getRegistration";
 
     public static final String VAR_TARGET_REF = "targetRef";
     public static final String VAR_TARGET = "target";

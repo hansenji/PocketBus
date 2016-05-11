@@ -62,27 +62,51 @@ public class Bus {
         this.eventCleanupCount = eventCleanupCount;
     }
 
+    /**
+     * @return the default bus instance
+     */
     @NonNull
     public static Bus getDefault() {
         return defaultBus;
     }
 
+    /**
+     * Sets the default bus instance
+     *
+     * @param bus
+     */
     public static void setDefault(@NonNull Bus bus) {
         defaultBus = bus;
     }
 
+    /**
+     * Enable or disable debug logging
+     *
+     * @param enable enable/disable debug logging
+     */
     public static void setDebug(boolean enable) {
         debug = enable;
     }
 
+    /**
+     * Set the registry for registering subscriptions
+     *
+     * @param registry the registry of subscriptions
+     */
     public void setRegistry(@Nullable Registry registry) {
         this.registry = registry;
     }
 
+    /**
+     * Register a target that has subscribe annotations.
+     *
+     * @param target the target that has subscribe annotations
+     * @throws IllegalArgumentException if the target has no entry in the registry
+     */
     public <T> void register(@NonNull T target) {
         SubscriptionRegistration subscriptionRegistration = null;
         if (registry != null) {
-            subscriptionRegistration = registry.getRegistrar(target);
+            subscriptionRegistration = registry.getRegistration(target);
         }
         if (subscriptionRegistration != null) {
             register(subscriptionRegistration);
@@ -91,10 +115,22 @@ public class Bus {
         }
     }
 
+    /**
+     * Register a single subscription with the bus
+     *
+     * @param subscription the subscription to register
+     * @throws NullPointerException if one of the subscription.getEventClass() returns null
+     */
     public <T> void register(@NonNull Subscription<? super T> subscription) {
         register(subscription, true);
     }
 
+    /**
+     * Registers a list of subscriptions from the subscriptionRegistration
+     *
+     * @param subscriptionRegistration the registration to register
+     * @throws NullPointerException if subscription.getEventClass() returns null
+     */
     protected void register(@NonNull SubscriptionRegistration subscriptionRegistration) {
         List<Subscription<?>> subscriptions = subscriptionRegistration.getSubscriptions();
         for (Subscription subscription : subscriptions) {
@@ -139,6 +175,12 @@ public class Bus {
         log("Registered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
+    /**
+     * Unregister a single subscription with the bus
+     *
+     * @param subscription the subscription to unregister
+     * @throws NullPointerException if subscription.getEventClass() returns null
+     */
     public <T> void unregister(@NonNull Subscription<? super T> subscription) {
         Map<Class, List<Subscription>> listenerMap;
 
@@ -170,10 +212,16 @@ public class Bus {
         log("Unregistered subscription for " + eventClass + " on ThreadMode." + threadMode);
     }
 
+    /**
+     * Unregister a target that has subscribe annotations.
+     *
+     * @param target the target that has subscribe annotations
+     * @throws IllegalArgumentException if the target has no entry in the registry
+     */
     public <T> void unregister(@NonNull T target) {
         SubscriptionRegistration subscriptionRegistration = null;
         if (registry != null) {
-            subscriptionRegistration = registry.getRegistrar(target);
+            subscriptionRegistration = registry.getRegistration(target);
         }
         if (subscriptionRegistration != null) {
             unregister(subscriptionRegistration);
@@ -182,12 +230,24 @@ public class Bus {
         }
     }
 
+    /**
+     * Unregisters a list of subscriptions from the subscriptionRegistration
+     *
+     * @param subscriptionRegistration the registration to unregister
+     * @throws NullPointerException if subscription.getEventClass() returns null
+     */
     protected void unregister(@NonNull SubscriptionRegistration subscriptionRegistration) {
         for (Subscription subscription : subscriptionRegistration.getSubscriptions()) {
             unregister(subscription);
         }
     }
 
+    /**
+     * Deliver the event to all registered subscriptions for this event type including super classes
+     * Note a subscription that takes Object will receive all events.
+     *
+     * @param event the event to deliver to subscriptions
+     */
     public <T> void post(T event) {
         if (event == null) {
             throw new NullPointerException("Event cannot be null");
@@ -229,6 +289,12 @@ public class Bus {
         }
     }
 
+    /**
+     * Similar to {@see post} but the event is saved and delivered to subscriptions of matching types when they are registered.
+     * Only the last event of each type is saved and delivered.
+     *
+     * @param event the event to post and save to be delivered on registration
+     */
     public <T> void postSticky(T event) {
         if (event == null) {
             throw new NullPointerException("Event cannot be null");
@@ -239,12 +305,24 @@ public class Bus {
         post(event);
     }
 
+    /**
+     * Remove the Sticky event of type eventClass
+     *
+     * @param eventClass the eventClass type to remove from the sticky store
+     * @return true if a sticky event was removed
+     */
     public <T> boolean removeSticky(@NonNull Class<T> eventClass) {
         synchronized (stickyLock) {
             return stickyEvents.remove(eventClass) != null;
         }
     }
 
+    /**
+     * Return the sticky event of tyep eventClass if it exists in the sticky store otherwise return null
+     *
+     * @param eventClass
+     * @return the sticky event of type eventClass if found in the sticky store null otherwise
+     */
     @Nullable
     public <T> T getSticky(@NonNull Class<T> eventClass) {
         synchronized (stickyLock) {
@@ -263,7 +341,7 @@ public class Bus {
             for (Map.Entry<Class<?>, ? super Object> entry : stickyEvents.entrySet()) {
                 Class<?> stickyClass = entry.getKey();
                 if (eventClass.isAssignableFrom(stickyClass)) {
-                    post(entry.getValue(), Collections.singletonList((Subscription)subscription), threadMode);
+                    post(entry.getValue(), Collections.singletonList((Subscription) subscription), threadMode);
                     log("Sticky Event<" + stickyClass + "> posted to Subscription<" + eventClass + "> on ThreadMode." + threadMode);
                 }
             }
@@ -407,6 +485,9 @@ public class Bus {
         }
     }
 
+    /**
+     * Builds an instance of the {@link Bus)
+     */
     public static class Builder {
         private static final int DEFAULT_BACKGROUND_THREAD_POOL_SIZE = 2;
         private static final int DEFAULT_EVENT_CLEANUP_COUNT = 100;
@@ -420,24 +501,57 @@ public class Bus {
         protected int backgroundThreadPoolSize = DEFAULT_BACKGROUND_THREAD_POOL_SIZE;
         protected int eventCleanupCount = DEFAULT_EVENT_CLEANUP_COUNT;
 
+        /**
+         * Set the RxScheduler to use for {@link ThreadMode}.MAIN
+         * <p>
+         * Default AndroidSchedulers.mainThread()
+         *
+         * @param scheduler the RxScheduler for the ThreadMode.MAIN
+         * @return This builder to allow for chaining calls to set methods
+         */
         @NonNull
         public Builder setMainScheduler(@NonNull Scheduler scheduler) {
             this.mainScheduler = scheduler;
             return this;
         }
 
+        /**
+         * Set the RxScheduler to use for {@link ThreadMode}.CURRENT
+         * <p>
+         * Default Schedulers.trampoline()
+         *
+         * @param scheduler the RxScheduler for the ThreadMode.CURRENT
+         * @return This builder to allow for chaining calls to set methods
+         */
         @NonNull
         public Builder setCurrentScheduler(@NonNull Scheduler scheduler) {
             this.currentScheduler = scheduler;
             return this;
         }
 
+        /**
+         * Set the RxScheduler to use for {@link ThreadMode}.BACKGROUND
+         * <p>
+         * Default Schedulers.from(Executors.newFixedThreadPool(backgroundThreadPoolSize))
+         *
+         * @param scheduler the RxScheduler for the ThreadMode.BACKGROUND
+         * @return This builder to allow for chaining calls to set methods
+         */
         @NonNull
         public Builder setBackgroundScheduler(@NonNull Scheduler scheduler) {
             this.backgroundScheduler = scheduler;
             return this;
         }
 
+        /**
+         * Set the number of threads for {@link ThreadMode}.BACKGROUND
+         * Only used if the default BackgroundScheduler is used.
+         * <p>
+         * Default is {@literal 2}
+         *
+         * @param threadPoolSize The number of threads for the background ThreadMode
+         * @return This builder to allow for chaining calls to set methods
+         */
         @NonNull
         public Builder setBackgroundThreadPoolSize(int threadPoolSize) {
             if (threadPoolSize < 1) {
@@ -447,12 +561,25 @@ public class Bus {
             return this;
         }
 
+        /**
+         * Set the number of events between cleanup of subscriptions
+         *
+         * Default is {@literal 100}
+         *
+         * @param eventCleanupCount number of events between cleanup of subscriptions
+         * @return This builder to allow for chaining calls to set methods
+         */
         @NonNull
         public Builder setEventCleanupCount(int eventCleanupCount) {
             this.eventCleanupCount = eventCleanupCount;
             return this;
         }
 
+        /**
+         * Builds a new instance of the bus with the given configuration
+         *
+         * @return the new instance of the bus
+         */
         @NonNull
         public Bus build() {
             if (mainScheduler == null) {
