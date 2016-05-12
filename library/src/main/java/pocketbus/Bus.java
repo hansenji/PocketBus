@@ -290,7 +290,7 @@ public class Bus {
     }
 
     /**
-     * Similar to {@see post} but the event is saved and delivered to subscriptions of matching types when they are registered.
+     * Similar to {@code post} but the event is saved and delivered to subscriptions of matching types when they are registered.
      * Only the last event of each type is saved and delivered.
      *
      * @param event the event to post and save to be delivered on registration
@@ -486,7 +486,7 @@ public class Bus {
     }
 
     /**
-     * Builds an instance of the {@link Bus)
+     * Builds an instance of the {@link Bus}
      */
     public static class Builder {
         private static final int DEFAULT_BACKGROUND_THREAD_POOL_SIZE = 2;
@@ -502,7 +502,7 @@ public class Bus {
         protected int eventCleanupCount = DEFAULT_EVENT_CLEANUP_COUNT;
 
         /**
-         * Set the RxScheduler to use for {@link ThreadMode}.MAIN
+         * Set the RxScheduler to use for ThreadMode.MAIN
          * <p>
          * Default AndroidSchedulers.mainThread()
          *
@@ -516,7 +516,7 @@ public class Bus {
         }
 
         /**
-         * Set the RxScheduler to use for {@link ThreadMode}.CURRENT
+         * Set the RxScheduler to use for ThreadMode.CURRENT
          * <p>
          * Default Schedulers.trampoline()
          *
@@ -530,7 +530,7 @@ public class Bus {
         }
 
         /**
-         * Set the RxScheduler to use for {@link ThreadMode}.BACKGROUND
+         * Set the RxScheduler to use for ThreadMode.BACKGROUND
          * <p>
          * Default Schedulers.from(Executors.newFixedThreadPool(backgroundThreadPoolSize))
          *
@@ -544,7 +544,7 @@ public class Bus {
         }
 
         /**
-         * Set the number of threads for {@link ThreadMode}.BACKGROUND
+         * Set the number of threads for ThreadMode.BACKGROUND
          * Only used if the default BackgroundScheduler is used.
          * <p>
          * Default is {@literal 2}
