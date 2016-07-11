@@ -5,7 +5,7 @@ apply plugin: 'bintray-release'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "24.0.0"
 
     defaultConfig {
         minSdkVersion 15
@@ -23,11 +23,11 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
-//        unitTests.all { Gradle 2.13
-//            jacoco {
-//                includeNoLocationClasses = true
-//            }
-//        }
+        unitTests.all { //Gradle 2.13
+            jacoco {
+                includeNoLocationClasses = true
+            }
+        }
     }
 
     compileOptions {
@@ -39,14 +39,14 @@ android {
 dependencies {
     compile "com.android.support:support-annotations:$supportLibVersion"
 
-    compile 'io.reactivex:rxjava:1.1.1'
-    compile 'io.reactivex:rxandroid:1.1.0'
+    compile 'io.reactivex:rxjava:1.1.7'
+    compile 'io.reactivex:rxandroid:1.2.1'
 
     compile project(path: ':core')
 
     testCompile 'junit:junit:4.12'
-    testCompile 'org.robolectric:robolectric:3.1-rc1'
-    testCompile 'org.mockito:mockito-core:2.0.41-beta'
+    testCompile 'org.robolectric:robolectric:3.1'
+    testCompile 'org.mockito:mockito-core:2.0.84-beta'
 }
 
 def libraryGroupId = 'com.vikingsen'
@@ -63,8 +63,8 @@ def coverageSourceDirs = [
 ]
 
 jacoco {
-    toolVersion "0.7.2.201409121644"
-    //    toolVersion "0.7.6.201602180812" Gradle 2.13
+//    toolVersion "0.7.2.201409121644"
+    toolVersion "0.7.7.201606060606"
 }
 
 task testDebugJacoco(type: JacocoReport, dependsOn: "testDebugUnitTest") {
