@@ -23,9 +23,9 @@ import rx.schedulers.Schedulers;
 
 public class Bus {
     private static final String TAG = "PocketBus";
+    private static final Object DEFAULT_LOCK = new Object();
 
-    @NonNull
-    private static Bus defaultBus = new Builder().build();
+    private static Bus defaultBus;
     private static boolean debug = false;
 
     @NonNull
@@ -67,7 +67,12 @@ public class Bus {
      */
     @NonNull
     public static Bus getDefault() {
-        return defaultBus;
+        synchronized (DEFAULT_LOCK) {
+            if (defaultBus == null) {
+                defaultBus = new Builder().build();
+            }
+            return defaultBus;
+        }
     }
 
     /**
@@ -75,8 +80,10 @@ public class Bus {
      *
      * @param bus
      */
-    public static void setDefault(@NonNull Bus bus) {
-        defaultBus = bus;
+    public synchronized static void setDefault(@NonNull Bus bus) {
+        synchronized (DEFAULT_LOCK) {
+            defaultBus = bus;
+        }
     }
 
     /**
@@ -141,7 +148,7 @@ public class Bus {
         }
     }
 
-    private <T> void register(@NonNull Subscription<? super T> subscription, boolean postStickyEvents) {
+    protected <T> void register(@NonNull Subscription<? super T> subscription, boolean postStickyEvents) {
         Map<Class, List<Subscription>> listenerMap;
         ThreadMode threadMode = subscription.getThreadMode();
         switch (threadMode) {
@@ -181,7 +188,7 @@ public class Bus {
      * @param subscription the subscription to unregister
      * @throws NullPointerException if subscription.getEventClass() returns null
      */
-    public <T> void unregister(@NonNull Subscription<? super T> subscription) {
+    protected <T> void unregister(@NonNull Subscription<? super T> subscription) {
         Map<Class, List<Subscription>> listenerMap;
 
         ThreadMode threadMode = subscription.getThreadMode();
