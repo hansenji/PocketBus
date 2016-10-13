@@ -297,11 +297,14 @@ public class Bus {
     }
 
     /**
+     * @deprecated This should never be used random acts of terror. Use a singleton class and check its state.
+     *
      * Similar to {@code post} but the event is saved and delivered to subscriptions of matching types when they are registered.
      * Only the last event of each type is saved and delivered.
      *
      * @param event the event to post and save to be delivered on registration
      */
+    @Deprecated
     public <T> void postSticky(T event) {
         if (event == null) {
             throw new NullPointerException("Event cannot be null");
@@ -313,11 +316,14 @@ public class Bus {
     }
 
     /**
+     * @deprecated  This should never by used see {@code postSticky}
+     *
      * Remove the Sticky event of type eventClass
      *
      * @param eventClass the eventClass type to remove from the sticky store
      * @return true if a sticky event was removed
      */
+    @Deprecated
     public <T> boolean removeSticky(@NonNull Class<T> eventClass) {
         synchronized (stickyLock) {
             return stickyEvents.remove(eventClass) != null;
@@ -325,12 +331,15 @@ public class Bus {
     }
 
     /**
+     * @deprecated  This should never by used see {@code postSticky}
+
      * Return the sticky event of tyep eventClass if it exists in the sticky store otherwise return null
      *
      * @param eventClass
      * @return the sticky event of type eventClass if found in the sticky store null otherwise
      */
     @Nullable
+    @Deprecated
     public <T> T getSticky(@NonNull Class<T> eventClass) {
         synchronized (stickyLock) {
             //noinspection unchecked
@@ -341,6 +350,7 @@ public class Bus {
     /**
      * Used to post sticky events to a newly registered listener
      */
+    @Deprecated
     private <T> void postStickyOnRegistration(@NonNull Subscription<? super T> subscription) {
         Class<? super T> eventClass = subscription.getEventClass(); // This check is handled by register.
         ThreadMode threadMode = subscription.getThreadMode();
