@@ -3,6 +3,7 @@ package com.vikingsen.sample;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricGradleTestRunner;
+import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import pocketbus.BuildConfig;
@@ -20,8 +21,8 @@ import rx.schedulers.Schedulers;
 
 import static org.junit.Assert.assertEquals;
 
-@RunWith(RobolectricGradleTestRunner.class)
-@Config(constants = BuildConfig.class)
+@RunWith(RobolectricTestRunner.class)
+@Config(constants = BuildConfig.class, sdk = 23)
 public class InheritanceTest implements ParentA.Callback, ParentB.Callback {
     private int eventCount = 0;
 

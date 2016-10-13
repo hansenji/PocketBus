@@ -17,7 +17,6 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
-import javax.tools.Diagnostic;
 
 import pocketbus.Registry;
 import pocketbus.Subscribe;
@@ -58,7 +57,6 @@ public final class BusProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        messager.printMessage(Diagnostic.Kind.NOTE, "*****Bus Processor*****");
         Map<TypeElement, SubscriptionGenerator> subscriptionMap = subscriptionProcessor.findAndParseTargets(roundEnv);
         for (Map.Entry<TypeElement, SubscriptionGenerator> entry : subscriptionMap.entrySet()) {
             TypeElement typeElement = entry.getKey();
