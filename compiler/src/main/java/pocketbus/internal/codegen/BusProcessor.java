@@ -19,6 +19,7 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 
+import pocketbus.Registry;
 import pocketbus.Subscribe;
 
 import static javax.tools.Diagnostic.Kind.ERROR;
@@ -52,7 +53,7 @@ public final class BusProcessor extends AbstractProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return ImmutableSet.of(Subscribe.class.getCanonicalName());
+        return ImmutableSet.of(Subscribe.class.getCanonicalName(), Registry.class.getCanonicalName());
     }
 
     @Override
