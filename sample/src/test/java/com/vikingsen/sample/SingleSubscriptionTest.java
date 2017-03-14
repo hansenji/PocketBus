@@ -2,15 +2,14 @@ package com.vikingsen.sample;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.robolectric.RobolectricGradleTestRunner;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import io.reactivex.schedulers.Schedulers;
 import pocketbus.BuildConfig;
 import pocketbus.Bus;
 import pocketbus.sample.BusRegistry;
 import pocketbus.sample.SingleSubscription;
-import rx.schedulers.Schedulers;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -21,7 +20,7 @@ public class SingleSubscriptionTest implements SingleSubscription.Callback {
 
     @Test
     public void test() throws Exception {
-        Bus bus = new Bus.Builder().setCurrentScheduler(Schedulers.immediate()).build();
+        Bus bus = new Bus.Builder().setCurrentScheduler(Schedulers.trampoline()).build();
         bus.setRegistry(new BusRegistry());
         Bus.setDefault(bus);
         SingleSubscription singleSubscription = new SingleSubscription(this);
