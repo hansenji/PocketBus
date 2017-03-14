@@ -13,7 +13,7 @@ buildscript {
 }
 
 def majorVersion = 1
-def minorVersion = 1
+def minorVersion = 2
 def patchVersion = 0
 def versionCode = majorVersion * 10000 + minorVersion * 100 + patchVersion
 def versionName = "$majorVersion.$minorVersion.$patchVersion"
