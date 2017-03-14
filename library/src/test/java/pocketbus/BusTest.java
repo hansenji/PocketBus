@@ -1,5 +1,7 @@
 package pocketbus;
 
+import android.os.Build;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -10,7 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import rx.schedulers.Schedulers;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -20,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class, sdk = 23)
+@Config(constants = BuildConfig.class, sdk = Build.VERSION_CODES.LOLLIPOP)
 public class BusTest {
 
     private Subscription<Foo> subscriptionMain = new Subscription<Foo>() {
@@ -111,9 +113,9 @@ public class BusTest {
     @Test
     public void testPost() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .build();
 
         String uid = UUID.randomUUID().toString();
@@ -136,9 +138,9 @@ public class BusTest {
     @Test
     public void testSticky() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .build();
         bus.postSticky(0);
         bus.postSticky(new Foo("foo"));
@@ -206,9 +208,9 @@ public class BusTest {
     @Test
     public void testRegistrar() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .build();
         Bus.setDebug(true);
         String uid = UUID.randomUUID().toString();
@@ -237,7 +239,7 @@ public class BusTest {
     @Test(expected = IllegalArgumentException.class)
     public void testBuilderException() {
         Bus.Builder builder = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
                 .setBackgroundThreadPoolSize(1);
         assertEquals(1, builder.backgroundThreadPoolSize);
         new Bus.Builder().setBackgroundThreadPoolSize(0);
@@ -246,9 +248,9 @@ public class BusTest {
     @Test
     public void testCleanupCount() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .setEventCleanupCount(1)
                 .build();
         assertEquals(1, bus.eventCleanupCount);
@@ -257,9 +259,9 @@ public class BusTest {
     @Test
     public void testNullClass() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .setEventCleanupCount(1)
                 .build();
         Subscription<Foo> subscription = new Subscription<Foo>() {
@@ -302,9 +304,9 @@ public class BusTest {
     @Test
     public void testAutoUnregister() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .setEventCleanupCount(1)
                 .build();
         Subscription<Foo> subscription1 = new Subscription<Foo>() {
@@ -452,9 +454,9 @@ public class BusTest {
     @Test
     public void testPostNull() {
         Bus bus = new Bus.Builder()
-                .setMainScheduler(Schedulers.immediate())
-                .setBackgroundScheduler(Schedulers.immediate())
-                .setCurrentScheduler(Schedulers.immediate())
+                .setMainScheduler(Schedulers.trampoline())
+                .setBackgroundScheduler(Schedulers.trampoline())
+                .setCurrentScheduler(Schedulers.trampoline())
                 .build();
         bus.register(subscriptionCurrent);
         try {

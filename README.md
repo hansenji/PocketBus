@@ -56,15 +56,11 @@ public void onStop() {
 @Subscribe(ThreadMode.BACKGROUND) // Runs on a background thread asynchronous
 ```
 
-```java
-bus.postSticky(new FooEvent()) // Saves the event of that type delivers it to a subscription on registration
-```
-
 ## Download
 Via gradle from *jcenter*
 ```
-compile 'com.vikingsen:pocketbus:1.0.0'
-provided 'com.vikingsen:pocketbus-compiler:1.0.0'
+compile 'com.vikingsen:pocketbus:1.1.0'
+provided 'com.vikingsen:pocketbus-compiler:1.1.0'
 ```
 
 License

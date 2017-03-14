@@ -14,12 +14,12 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.reactivex.Observable;
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.functions.Consumer;
+import io.reactivex.schedulers.Schedulers;
 import pocketbus.internal.Registry;
-import rx.Observable;
-import rx.Scheduler;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action1;
-import rx.schedulers.Schedulers;
 
 public class Bus {
     private static final String TAG = "PocketBus";
@@ -278,10 +278,10 @@ public class Bus {
         if (counter >= eventCleanupCount) {
             eventCounter.set(0);
             Observable.just(0)
-                    .subscribeOn(backgroundScheduler)
-                    .subscribe(new Action1<Integer>() {
+                      .subscribeOn(backgroundScheduler)
+                      .subscribe(new Consumer<Integer>() {
                         @Override
-                        public void call(Integer integer) {
+                        public void accept(Integer integer) {
                             cleanupReferences();
                         }
                     });
@@ -368,9 +368,9 @@ public class Bus {
     private <T> void post(@NonNull T event, @NonNull List<Subscription> subscriptions, @NonNull ThreadMode threadMode) {
         Observable.just(new SubscriptionsStore<>(event, new ArrayList<>(subscriptions), threadMode))
                 .subscribeOn(getScheduler(threadMode))
-                .subscribe(new Action1<SubscriptionsStore<T>>() {
+                .subscribe(new Consumer<SubscriptionsStore<T>>() {
                     @Override
-                    public void call(SubscriptionsStore<T> store) {
+                    public void accept(SubscriptionsStore<T> store) {
                         performPost(store);
                     }
                 });
@@ -382,9 +382,9 @@ public class Bus {
             if (!subscription.handle(store.event)) {
                 Observable.just(new SubscriptionStore<>(store.event, null, store.threadMode))
                         .subscribeOn(backgroundScheduler)
-                        .subscribe(new Action1<SubscriptionStore<T>>() {
+                        .subscribe(new Consumer<SubscriptionStore<T>>() {
                             @Override
-                            public void call(SubscriptionStore<T> store) {
+                            public void accept(SubscriptionStore<T> store) {
                                 unregister(store);
                             }
                         });
